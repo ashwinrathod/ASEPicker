@@ -1,0 +1,45 @@
+name: Compile ASEPicker
+on: 
+  workflow_dispatch: # Allows you to run it manually from the GitHub website
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+        python-version: ["3.7", "3.9", "3.10", "3.11", "3.12"]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Dependencies
+        run: python -m pip install --upgrade pip cython
+
+      - name: Compile C-Extensions
+        run: python setup.py build_ext --inplace
+
+      - name: Clean up temporary C files
+        run: |
+          rm ASEPicker/*.c
+        shell: bash
+
+      - name: Organize Binaries
+        run: |
+          mkdir -p build_output/py${{ matrix.python-version }}
+          # Move .pyd (Windows) or .so (Mac/Linux)
+          mv ASEPicker/*.pyd build_output/py${{ matrix.python-version }}/ 2>/dev/null || true
+          mv ASEPicker/*.so build_output/py${{ matrix.python-version }}/ 2>/dev/null || true
+        shell: bash
+
+      - name: Upload Binary Artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ASEPicker-Binaries-${{ matrix.os }}-Py${{ matrix.python-version }}
+          path: build_output/
