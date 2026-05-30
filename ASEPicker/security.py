@@ -58,6 +58,7 @@ def activate_online_key(parent_window, license_key):
     payload = json.dumps({"license_key": license_key, "system_id": system_id}).encode('utf-8')
     req = urllib.request.Request(ONLINE_URL, data=payload, method="POST")
     req.add_header("Content-Type", "application/json")
+    req.add_header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
     
     response = urllib.request.urlopen(req, timeout=10)
     
