@@ -1,21 +1,23 @@
 name: Compile ASEPicker
 on: 
-  workflow_dispatch: # Allows you to run it manually from the GitHub website
+  workflow_dispatch: 
 
 jobs:
   build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false # Prevents one failure from cancelling the rest
       matrix:
-        os: [windows-latest, macos-latest, ubuntu-latest]
+        # Pinned to stable OS versions to support Python 3.7 compilation
+        os: [windows-2022, macos-13, ubuntu-22.04]
         python-version: ["3.7", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
       - name: Checkout Code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4 # Upgraded to v4
 
       - name: Set up Python ${{ matrix.python-version }}
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5 # Upgraded to v5
         with:
           python-version: ${{ matrix.python-version }}
 
@@ -27,7 +29,7 @@ jobs:
 
       - name: Clean up temporary C files
         run: |
-          rm ASEPicker/*.c
+          rm ASEPicker/*.c 2>/dev/null || true
         shell: bash
 
       - name: Organize Binaries
@@ -39,7 +41,7 @@ jobs:
         shell: bash
 
       - name: Upload Binary Artifacts
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4 # Upgraded to v4
         with:
           name: ASEPicker-Binaries-${{ matrix.os }}-Py${{ matrix.python-version }}
           path: build_output/
