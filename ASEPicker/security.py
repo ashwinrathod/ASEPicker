@@ -11,7 +11,7 @@ import urllib.request
 
 # --- MASTER SECRET FOR OFFLINE KEYS ---
 SECRET_KEY = b"ASEPicker_Ultimate_Secret_Key_2026_X981"
-ONLINE_URL = "https://asepicker-license-server.asepicker.workers.dev"
+ONLINE_URL = "https://ase-license-server.asepicker.workers.dev/"
 
 def get_system_id():
     mac = uuid.getnode()
