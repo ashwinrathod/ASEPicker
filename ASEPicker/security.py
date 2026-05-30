@@ -21,7 +21,7 @@ def get_system_id():
     raw = f"{user}|{host}|{format(mac, '012x')}"
     digest = hashlib.sha256()
     digest.update(raw.encode("utf-8"))
-    hexv = digest.finalize().hexdigest().upper()
+    hexv = digest.hexdigest().upper()
     
     short = hexv[:20]
     parts = [short[i:i+4] for i in range(0, 20, 4)]
