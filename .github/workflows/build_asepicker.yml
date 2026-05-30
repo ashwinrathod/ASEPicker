@@ -34,8 +34,11 @@ jobs:
 
       - name: Organize Binaries
         run: |
+          # 1. Strip the messy CPython architecture tags (e.g., main.cp310-win_amd64.pyd -> main.pyd)
+          python -c "import os, glob; [os.rename(f, os.path.join(os.path.dirname(f), os.path.basename(f).split('.')[0] + '.' + f.split('.')[-1])) for f in glob.glob('ASEPicker/*.pyd') + glob.glob('ASEPicker/*.so')]"
+          
+          # 2. Create the folders and move the clean files
           mkdir -p build_output/py${{ matrix.python-version }}
-          # Move .pyd (Windows) or .so (Mac/Linux)
           mv ASEPicker/*.pyd build_output/py${{ matrix.python-version }}/ 2>/dev/null || true
           mv ASEPicker/*.so build_output/py${{ matrix.python-version }}/ 2>/dev/null || true
         shell: bash
