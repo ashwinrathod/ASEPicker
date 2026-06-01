@@ -34,13 +34,36 @@ jobs:
 
       - name: Organize Binaries
         run: |
-          # 1. Strip the messy CPython architecture tags (e.g., main.cp310-win_amd64.pyd -> main.pyd)
-          python -c "import os, glob; [os.rename(f, os.path.join(os.path.dirname(f), os.path.basename(f).split('.')[0] + '.' + f.split('.')[-1])) for f in glob.glob('ASEPicker/*.pyd') + glob.glob('ASEPicker/*.so')]"
+          python -c "
+          import os, shutil, sys
+
+          # Detect OS and Python version exactly like our install.py script
+          plat = sys.platform
+          os_name = 'win' if plat == 'win32' else 'mac' if plat == 'darwin' else 'linux'
+          py_ver = f'{sys.version_info.major}{sys.version_info.minor}'
           
-          # 2. Create the folders and move the clean files
-          mkdir -p build_output/py${{ matrix.python-version }}
-          mv ASEPicker/*.pyd build_output/py${{ matrix.python-version }}/ 2>/dev/null || true
-          mv ASEPicker/*.so build_output/py${{ matrix.python-version }}/ 2>/dev/null || true
+          # Construct the target build folder
+          out_dir = f'build/{os_name}/py{py_ver}'
+
+          # Walk through ASEPicker and find EVERY compiled file
+          for root, dirs, files in os.walk('ASEPicker'):
+              for f in files:
+                  if f.endswith(('.pyd', '.so')):
+                      src_path = os.path.join(root, f)
+                      
+                      # Recreate the folder structure (e.g., /anim)
+                      rel_path = os.path.relpath(src_path, 'ASEPicker')
+                      target_dir = os.path.join(out_dir, os.path.dirname(rel_path))
+                      
+                      if not os.path.exists(target_dir): 
+                          os.makedirs(target_dir)
+                          
+                      # Clean the complex Cython tags (e.g. logic_anim.cp39-win_amd64.pyd -> logic_anim.pyd)
+                      base = os.path.basename(rel_path)
+                      clean_name = base.split('.')[0] + '.' + base.split('.')[-1]
+                      
+                      shutil.move(src_path, os.path.join(target_dir, clean_name))
+          "
         shell: bash
 
       - name: Upload Binary Artifacts
