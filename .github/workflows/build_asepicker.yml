@@ -45,7 +45,7 @@ jobs:
           py_ver = f'{sys.version_info.major}{sys.version_info.minor}'
           
           # Construct the target build folder
-          out_dir = f'build/{os_name}/py{py_ver}'
+          out_dir = f'build_output/{os_name}/py{py_ver}'
 
           # Walk through ASEPicker and find EVERY compiled file
           for root, dirs, files in os.walk('ASEPicker'):
@@ -68,8 +68,8 @@ jobs:
           "
         shell: bash
 
-      - name: Upload Binary Artifacts
-        uses: actions/upload-artifact@v4 # Upgraded to v4
+      - name: Upload Compiled Binaries
+        uses: actions/upload-artifact@v4
         with:
-          name: ASEPicker-Binaries-${{ matrix.os }}-Py${{ matrix.python-version }}
-          path: build/
+          name: ASEPicker-Compiled-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: build_output/
