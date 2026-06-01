@@ -27,6 +27,7 @@ class CharacterTab(QtWidgets.QWidget):
         super(CharacterTab, self).__init__(parent)
         self.name = name
         self.namespace = namespace
+        self.ikfk_chains = []
         self.layout = QtWidgets.QVBoxLayout(self)
         self.layout.setContentsMargins(4, 4, 4, 4)
         
@@ -123,7 +124,7 @@ class PickerWindow(QtWidgets.QMainWindow):
         if parent is None: parent = get_maya_main_window()
         super(PickerWindow, self).__init__(parent)
         # ... rest of your __init__ logic ...
-        self.setWindowTitle("ASEPicker 1.0.0")
+        self.setWindowTitle("ASEPicker 1.0.1")
         self.resize(600, 800)
         self.setWindowFlags(QtCore.Qt.Window)
 
@@ -152,7 +153,7 @@ class PickerWindow(QtWidgets.QMainWindow):
     def show_api_help(self):
         dialog = QtWidgets.QDialog(self)
         dialog.setWindowTitle("ASEPicker API & Scripting Guide")
-        dialog.resize(850, 650)
+        dialog.resize(850, 750)  # Slightly taller to fit the new info
         dialog.setWindowFlags(dialog.windowFlags() | QtCore.Qt.WindowMaximizeButtonHint)
         lay = QtWidgets.QVBoxLayout(dialog)
         
@@ -187,6 +188,7 @@ class PickerWindow(QtWidgets.QMainWindow):
             <tr><td style="color:#ff79c6; border-bottom: 1px solid #333;"><b>BG Color</b></td><td style="border-bottom: 1px solid #333;"><code>api.set_color("YOUR_ID", "#ff0000")</code></td></tr>
             <tr><td style="color:#ff79c6; border-bottom: 1px solid #333;"><b>Text Color</b></td><td style="border-bottom: 1px solid #333;"><code>api.set_text_color("YOUR_ID", "#00ff00")</code></td></tr>
             <tr><td style="color:#ff79c6; border-bottom: 1px solid #333;"><b>Edge Color</b></td><td style="border-bottom: 1px solid #333;"><code>api.set_edge_color("YOUR_ID", "#0000ff")</code></td></tr>
+            <tr><td style="color:#ff79c6; border-bottom: 1px solid #333;"><b>Set Checkbox</b></td><td style="border-bottom: 1px solid #333;"><code>api.set_checkbox("YOUR_ID", True)</code></td></tr>
         </table>
         
         <h3 style='color: #4CAF50;'>4. Layer Control</h3>
@@ -195,7 +197,11 @@ class PickerWindow(QtWidgets.QMainWindow):
 
         <h3 style='color: #4CAF50;'>5. Rigging Helpers</h3>
         <p>Get information about the current rig to run custom Maya commands.</p>
-        <pre style='background: #111; padding: 8px; border-radius: 4px; color: #f1fa8c;'>from maya import cmds<br># Get namespace (e.g. 'Character1')<br>ns = api.get_namespace()<br><br># Automatically gets controls with the correct namespace!<br>ctrls = api.get_controls("YOUR_ID")<br>cmds.setKeyframe(ctrls)</pre>
+        <pre style='background: #111; padding: 8px; border-radius: 4px; color: #f1fa8c;'>from maya import cmds<br># Get namespace (e.g. 'Character1')<br>ns = api.get_namespace()<br><br># Get assigned controls for a specific shape<br>ctrls = api.get_controls("YOUR_ID")<br><br># Get ALL assigned controls across the entire character tab<br>all_ctrls = api.get_all_character_controls()<br>cmds.setKeyframe(all_ctrls)</pre>
+
+        <h3 style='color: #4CAF50;'>6. IK/FK Matching Engine</h3>
+        <p>Trigger the built-in AAA Matrix matching engine flawlessly from a script or checkbox toggle. The chain name must perfectly match the name configured in the Rig Settings tab.</p>
+        <pre style='background: #111; padding: 8px; border-radius: 4px; color: #f1fa8c;'># Switch a configured limb to IK (Snaps IK to current FK pose)<br>api.match_ikfk("Right Hand", "to_ik")<br><br># Switch a configured limb to FK (Snaps FK to current IK pose)<br>api.match_ikfk("Right Hand", "to_fk")</pre>
         """
         text.setHtml(html)
         lay.addWidget(text)
@@ -281,6 +287,12 @@ class PickerWindow(QtWidgets.QMainWindow):
         self.main_menu.addAction("🔄 Smart Sync UI").triggered.connect(lambda: self.menu_action_requested.emit("smart_sync"))
         self.main_menu.addSeparator()
         
+        # --- NEW: ANIM TOOLS SUB-MENU ---
+        anim_menu = self.main_menu.addMenu("🎬 Anim Tools")
+        anim_menu.addAction("Floating Anim Bar").triggered.connect(lambda: self.menu_action_requested.emit("open_anim_bar"))
+        self.main_menu.addSeparator()
+        # --------------------------------
+
         self.main_menu.addAction("⚙️ Preferences").triggered.connect(lambda: self.prefs_requested.emit())
         self.main_menu.addSeparator()
         
@@ -851,8 +863,12 @@ class PickerCanvas(QtWidgets.QGraphicsView):
             self.window()._on_edit_toggled(True)
             event.accept(); return
         
+        if match("hk_animbar"):
+            self.window().menu_action_requested.emit("open_anim_bar")
+            event.accept(); return
+        
         if match("hk_editor"):
-            # THE FIX: Safely route directly to the Canvas's native editor spawner
+            # Safely route directly to the Canvas's native editor spawner
             is_edit = getattr(self, "is_edit_mode", False) or getattr(self.window(), "is_edit_mode", False)
             if is_edit:
                 sel = [i for i in self.scene.selectedItems() if hasattr(i, "shape_name")]
@@ -861,7 +877,6 @@ class PickerCanvas(QtWidgets.QGraphicsView):
             event.accept(); return
 
         if match("hk_focus"):
-            # THE FIX: Removed () from self.scene
             target_items = [i for i in self.scene.selectedItems() if hasattr(i, "shape_name")]
             if not target_items: target_items = [i for i in self.scene.items() if hasattr(i, "shape_name")]
             if target_items:

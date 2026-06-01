@@ -7,7 +7,13 @@ import datetime
 import socket
 import getpass
 import os
-import urllib.request
+import importlib
+import importlib.util
+
+if importlib.util.find_spec("PySide2"):
+    from PySide2 import QtWidgets
+else:
+    from PySide6 import QtWidgets
 
 # --- MASTER SECRET FOR OFFLINE KEYS ---
 SECRET_KEY = b"ASEPicker_Ultimate_Secret_Key_2026_X981"
@@ -52,7 +58,8 @@ def verify_offline_key(license_b64):
     return True
 
 def activate_online_key(parent_window, license_key):
-    from PySide2 import QtWidgets
+    import urllib.request
+
     system_id = get_system_id()
     
     payload = json.dumps({"license_key": license_key, "system_id": system_id}).encode('utf-8')
@@ -93,8 +100,6 @@ def save_license(license_str):
         f.write(license_str)
 
 def enforce_license(parent_window):
-    from PySide2 import QtWidgets
-    
     saved_lic = get_saved_license()
     if saved_lic:
         if saved_lic.startswith("OFF-") and verify_offline_key(saved_lic): return True
@@ -106,11 +111,33 @@ def enforce_license(parent_window):
                 if today <= exp_date: return True
         
     sys_id = get_system_id()
-    text, ok = QtWidgets.QInputDialog.getMultiLineText(
-        parent_window, 
-        "ASEPicker Activation Required", 
-        f"Your System ID:\n{sys_id}\n\nPlease enter your Activation Key (Starts with OFF- or ONL-):"
-    )
+    
+    dialog = QtWidgets.QDialog(parent_window)
+    dialog.setWindowTitle("ASEPicker Activation")
+    layout = QtWidgets.QVBoxLayout(dialog)
+    
+    layout.addWidget(QtWidgets.QLabel("Your System ID (Copy below for Offline Activation):"))
+    sys_field = QtWidgets.QLineEdit(sys_id)
+    sys_field.setReadOnly(True)
+    layout.addWidget(sys_field)
+    
+    layout.addWidget(QtWidgets.QLabel("Enter Activation Key (OFF-... or ONL-...):"))
+    key_field = QtWidgets.QLineEdit()
+    layout.addWidget(key_field)
+    
+    btns = QtWidgets.QHBoxLayout()
+    btn_ok = QtWidgets.QPushButton("Activate")
+    btn_ok.clicked.connect(dialog.accept)
+    btn_cancel = QtWidgets.QPushButton("Cancel")
+    btn_cancel.clicked.connect(dialog.reject)
+    btns.addWidget(btn_ok)
+    btns.addWidget(btn_cancel)
+    layout.addLayout(btns)
+    
+    sys_field.selectAll()
+    
+    ok = dialog.exec_()
+    text = key_field.text()
     
     if ok and text.strip():
         key = text.strip()

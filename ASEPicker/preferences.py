@@ -41,6 +41,8 @@ class PrefManager:
             "win_h": 800,
             "win_x": -9999,  # Silent position tracker
             "win_y": -9999,  # Silent position tracker
+            "animbar_x": -9999, # Silent AnimBar tracker
+            "animbar_y": -9999, # Silent AnimBar tracker
             "editor_w": 380, # Silent editor size tracker
             "editor_h": 600, # Silent editor size tracker
             "editor_x": -9999, # Silent editor position tracker
@@ -59,6 +61,7 @@ class PrefManager:
             "hk_editor": "E",
             "hk_hier_add": "",
             "hk_hier_rem": "",
+            "hk_animbar": "",
             "mirror_use_canvas": False
         }
         self.data = self.defaults.copy()
@@ -237,6 +240,7 @@ class PrefsWindow(QtWidgets.QDialog):
             l_hk.addRow(label, edit)
 
         _add_hk("Preferences Window:", "hk_prefs")
+        _add_hk("Toggle Anim Bar:", "hk_animbar")
         _add_hk("Reset View:", "hk_reset")
         _add_hk("Focus View:", "hk_focus")
         _add_hk("Toggle Pose Mode:", "hk_pose")

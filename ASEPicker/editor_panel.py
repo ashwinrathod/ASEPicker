@@ -986,6 +986,136 @@ class EditorPanel(QtWidgets.QWidget):
         l_spl.addStretch()
         self._add_page("*SPL*", t_spl)
 
+        # ===============================================
+        # GLOBAL RIG SETTINGS (EXPLICIT CHAIN MANAGER)
+        # ===============================================
+        t_rig = QtWidgets.QWidget(); l_rig = QtWidgets.QVBoxLayout(t_rig)
+        
+        l_rig.addWidget(QtWidgets.QLabel("Configured IK/FK Chains:"))
+        self.ikfk_list = QtWidgets.QListWidget()
+        self.ikfk_list.setFixedHeight(80)
+        self.ikfk_list.currentRowChanged.connect(self._ikfk_on_select)
+        l_rig.addWidget(self.ikfk_list)
+        
+        r_btns = QtWidgets.QHBoxLayout()
+        btn_add_chain = QtWidgets.QPushButton("+ New Chain"); btn_add_chain.clicked.connect(self._ikfk_add)
+        btn_del_chain = QtWidgets.QPushButton("- Delete Selected"); btn_del_chain.clicked.connect(self._ikfk_del)
+        r_btns.addWidget(btn_add_chain); r_btns.addWidget(btn_del_chain)
+        l_rig.addLayout(r_btns)
+        
+        scroll = QtWidgets.QScrollArea()
+        scroll.setWidgetResizable(True)
+        
+        self.ikfk_grp = QtWidgets.QGroupBox("Explicit Chain Properties")
+        f_ik = QtWidgets.QFormLayout(self.ikfk_grp)
+        
+        self.ikfk_name = QtWidgets.QLineEdit()
+        f_ik.addRow("Chain Name:", self.ikfk_name)
+        
+        r_vals = QtWidgets.QHBoxLayout()
+        self.ikfk_ik_val = QtWidgets.QDoubleSpinBox(); self.ikfk_ik_val.setRange(0, 10); self.ikfk_ik_val.setValue(1.0)
+        self.ikfk_fk_val = QtWidgets.QDoubleSpinBox(); self.ikfk_fk_val.setRange(0, 10); self.ikfk_fk_val.setValue(0.0)
+        r_vals.addWidget(QtWidgets.QLabel("IK Val:")); r_vals.addWidget(self.ikfk_ik_val)
+        r_vals.addWidget(QtWidgets.QLabel("FK Val:")); r_vals.addWidget(self.ikfk_fk_val)
+        f_ik.addRow("Switch Vals:", r_vals)
+
+        # --- SMART ADD BUTTONS ---
+        def _add_btn(target_field, multi=False):
+            b = QtWidgets.QPushButton("ADD") # FIX: Removed '+' to stop text cutoff
+            b.setFixedWidth(50)
+            def _apply():
+                from maya import cmds
+                sel = cmds.ls(sl=True)
+                if sel:
+                    short_names = [s.split("|")[-1].split(":")[-1] for s in sel]
+                    
+                    # Safe text extraction (Checks if it's a LineEdit or TextEdit)
+                    is_text_edit = isinstance(target_field, QtWidgets.QTextEdit)
+                    current_text = target_field.toPlainText() if is_text_edit else target_field.text()
+                    
+                    if multi:
+                        existing = [x.strip() for x in current_text.split(",") if x.strip()]
+                        for sn in short_names:
+                            if sn not in existing: existing.append(sn)
+                        new_txt = ", ".join(existing)
+                    else:
+                        new_txt = short_names[0]
+                        
+                    if is_text_edit: target_field.setPlainText(new_txt)
+                    else: target_field.setText(new_txt)
+            b.clicked.connect(_apply)
+            return b
+
+        def _add_attr_btn(target_field):
+            b = QtWidgets.QPushButton("ADD") # FIX: Removed '+' to stop text cutoff
+            b.setFixedWidth(50)
+            def _apply():
+                from maya import cmds
+                cb_attrs = cmds.channelBox('mainChannelBox', q=True, selectedMainAttributes=True) or []
+                if cb_attrs: target_field.setText(cb_attrs[0])
+                else: cmds.warning("[ASEPicker] Select an attribute in the Maya Channel Box first!")
+            b.clicked.connect(_apply)
+            return b
+        # -------------------------
+
+        r_swn = QtWidgets.QHBoxLayout(); self.ikfk_sw_node = QtWidgets.QLineEdit()
+        r_swn.addWidget(self.ikfk_sw_node); r_swn.addWidget(_add_btn(self.ikfk_sw_node))
+        f_ik.addRow("Switch Node:", r_swn)
+        
+        r_swa = QtWidgets.QHBoxLayout(); self.ikfk_sw_attr = QtWidgets.QLineEdit()
+        self.ikfk_sw_attr.setPlaceholderText("Select in Channel Box ->")
+        r_swa.addWidget(self.ikfk_sw_attr); r_swa.addWidget(_add_attr_btn(self.ikfk_sw_attr))
+        f_ik.addRow("Switch Attr:", r_swa)
+
+        r_ik = QtWidgets.QHBoxLayout(); self.ikfk_ik_ctrl = QtWidgets.QLineEdit()
+        r_ik.addWidget(self.ikfk_ik_ctrl); r_ik.addWidget(_add_btn(self.ikfk_ik_ctrl))
+        f_ik.addRow("IK Control:", r_ik)
+        
+        r_pv = QtWidgets.QHBoxLayout(); self.ikfk_pv_ctrl = QtWidgets.QLineEdit()
+        r_pv.addWidget(self.ikfk_pv_ctrl); r_pv.addWidget(_add_btn(self.ikfk_pv_ctrl))
+        f_ik.addRow("Pole Vector:", r_pv)
+        
+        r_fk = QtWidgets.QHBoxLayout(); self.ikfk_fk_ctrls = QtWidgets.QLineEdit()
+        r_fk.addWidget(self.ikfk_fk_ctrls); r_fk.addWidget(_add_btn(self.ikfk_fk_ctrls, multi=True))
+        f_ik.addRow("FK Controls:", r_fk)
+        
+        # BONES (Driven Joints) with Auto-Find AND Manual Add
+        r_bn_main = QtWidgets.QVBoxLayout()
+        r_bn_top = QtWidgets.QHBoxLayout()
+        
+        self.ikfk_bones = QtWidgets.QTextEdit() # FIX: Changed to multi-line box!
+        self.ikfk_bones.setMaximumHeight(65)
+        
+        btn_auto = QtWidgets.QPushButton("AUTO FIND")
+        btn_auto.setFixedWidth(75)
+        btn_auto.clicked.connect(self._ikfk_auto_joints)
+        
+        # Auto Find goes on the right side of the bone box
+        r_bn_top.addWidget(self.ikfk_bones)
+        r_bn_top.addWidget(btn_auto)
+        
+        r_bn_bot = QtWidgets.QHBoxLayout()
+        r_bn_bot.addStretch()
+        # Add button goes below the box
+        r_bn_bot.addWidget(_add_btn(self.ikfk_bones, multi=True))
+        
+        r_bn_main.addLayout(r_bn_top)
+        r_bn_main.addLayout(r_bn_bot)
+        
+        f_ik.addRow("Driven Joints:", r_bn_main)
+        
+        btn_save = QtWidgets.QPushButton("💾 Save Changes to Chain")
+        btn_save.setStyleSheet("background-color: #5285a6; font-weight: bold; padding: 4px;")
+        btn_save.clicked.connect(self._ikfk_save)
+        f_ik.addRow("", btn_save)
+        
+        scroll.setWidget(self.ikfk_grp)
+        l_rig.addWidget(scroll)
+        self.ikfk_grp.setEnabled(False)
+        self._add_page("IK - FK", t_rig)
+        
+        # Wire auto-refresh when tab is clicked
+        self.nav_list.currentRowChanged.connect(self._on_tab_changed)
         self.nav_list.setCurrentRow(0)
 
     def _on_pose_ctrl_selected(self):
@@ -1027,6 +1157,7 @@ class EditorPanel(QtWidgets.QWidget):
         # --- REFRESH LAYERS AND SCRIPTS ---
         self._populate_layers()
         self._populate_scripts()
+        self.refresh_ikfk_manager()
 
         # --- LAYER INFO LABEL REFRESH ---
         self._populate_layers()
@@ -1072,7 +1203,7 @@ class EditorPanel(QtWidgets.QWidget):
         
         # --- POPULATE SCRIPTS BOX ---
         self._populate_scripts()
-
+        
         # --- POPULATE HIERARCHY BOX ---
         self.hier_list.clear()
         if items:
@@ -1287,11 +1418,12 @@ class EditorPanel(QtWidgets.QWidget):
             win.menu_action_requested.emit("push_undo")
 
     def _on_live_change(self, *args):
-        if self._is_populating or not getattr(self, "target_items", None): return
-        
-        # SMART SENDER: Only apply the exact property that was touched!
+        if self._is_populating: return
         sender = self.sender()
         if not sender: return
+
+        # --- PROCEED WITH NORMAL SHAPE DATA ---
+        if not getattr(self, "target_items", None): return
 
         # If an anchor button is turning OFF, ignore its signal entirely!
         if getattr(self, "anchor_btns", None) and sender in self.anchor_btns.buttons():
@@ -1946,6 +2078,118 @@ class EditorPanel(QtWidgets.QWidget):
         if items and items[0].scene() and items[0].scene().views():
             items[0].scene().views()[0].viewport().update()
 
+    # ====================================================================
+    # IK-FK CHAIN MANAGER LOGIC
+    # ====================================================================
+    def _get_active_char_tab(self):
+        main_win = self.parentWidget() if hasattr(self.parentWidget(), "main_tabs") else self.window()
+        if hasattr(main_win, "main_tabs") and main_win.main_tabs.currentWidget():
+            return main_win.main_tabs.currentWidget()
+        return None
+
+    def _on_tab_changed(self, idx):
+        if self.nav_list.item(idx).text() in ["IK - FK", "RIG SETTINGS"]:
+            self.refresh_ikfk_manager()
+
+    def refresh_ikfk_manager(self):
+        char_tab = self._get_active_char_tab()
+        if not char_tab: return
+        chains = getattr(char_tab, "ikfk_chains", [])
+        self.ikfk_list.blockSignals(True)
+        self.ikfk_list.clear()
+        for c in chains:
+            self.ikfk_list.addItem(c.get("name", "Unnamed Chain"))
+        self.ikfk_list.blockSignals(False)
+        self.ikfk_grp.setEnabled(False)
+
+    def _ikfk_on_select(self, row):
+        if row < 0:
+            self.ikfk_grp.setEnabled(False)
+            return
+        char_tab = self._get_active_char_tab()
+        chains = getattr(char_tab, "ikfk_chains", [])
+        if row >= len(chains): return
+        
+        chain = chains[row]
+        self.ikfk_name.setText(chain.get("name", ""))
+        self.ikfk_ik_val.setValue(chain.get("ik_val", 1.0))
+        self.ikfk_fk_val.setValue(chain.get("fk_val", 0.0))
+        self.ikfk_sw_node.setText(chain.get("sw_node", ""))
+        self.ikfk_sw_attr.setText(chain.get("sw_attr", ""))
+        self.ikfk_ik_ctrl.setText(chain.get("ik_ctrl", ""))
+        self.ikfk_pv_ctrl.setText(chain.get("pv_ctrl", ""))
+        self.ikfk_fk_ctrls.setText(", ".join(chain.get("fk_ctrls", [])))
+        self.ikfk_bones.setPlainText(", ".join(chain.get("bones", [])))
+        
+        self.ikfk_grp.setEnabled(True)
+
+    def _ikfk_add(self):
+        char_tab = self._get_active_char_tab()
+        if not char_tab: return
+        if not hasattr(char_tab, "ikfk_chains"): char_tab.ikfk_chains = []
+        new_chain = {
+            "name": f"New Chain {len(char_tab.ikfk_chains) + 1}",
+            "ik_ctrl": "", "pv_ctrl": "", "sw_node": "", "sw_attr": "", 
+            "fk_ctrls": [], "bones": [], "ik_val": 1.0, "fk_val": 0.0
+        }
+        char_tab.ikfk_chains.append(new_chain)
+        self.refresh_ikfk_manager()
+        self.ikfk_list.setCurrentRow(len(char_tab.ikfk_chains) - 1)
+        self._push_undo_from_editor()
+
+    def _ikfk_del(self):
+        row = self.ikfk_list.currentRow()
+        if row < 0: return
+        char_tab = self._get_active_char_tab()
+        if char_tab and hasattr(char_tab, "ikfk_chains"):
+            char_tab.ikfk_chains.pop(row)
+            self.refresh_ikfk_manager()
+            self._push_undo_from_editor()
+
+    def _ikfk_save(self):
+        row = self.ikfk_list.currentRow()
+        if row < 0: return
+        char_tab = self._get_active_char_tab()
+        if not char_tab or not hasattr(char_tab, "ikfk_chains"): return
+        
+        char_tab.ikfk_chains[row] = {
+            "name": self.ikfk_name.text(),
+            "ik_val": self.ikfk_ik_val.value(),
+            "fk_val": self.ikfk_fk_val.value(),
+            "ik_ctrl": self.ikfk_ik_ctrl.text(),
+            "pv_ctrl": self.ikfk_pv_ctrl.text(),
+            "sw_node": self.ikfk_sw_node.text(),
+            "sw_attr": self.ikfk_sw_attr.text(),
+            "fk_ctrls": [x.strip() for x in self.ikfk_fk_ctrls.text().split(",") if x.strip()],
+            "bones": [x.strip() for x in self.ikfk_bones.toPlainText().split(",") if x.strip()]
+        }
+        self.ikfk_list.item(row).setText(self.ikfk_name.text())
+        self._push_undo_from_editor()
+        from maya import cmds
+        cmds.inViewMessage(amg="Chain Saved Successfully", pos="midCenter", fade=True)
+
+    def _ikfk_auto_joints(self):
+        fk_str = self.ikfk_fk_ctrls.text()
+        if not fk_str:
+            from maya import cmds
+            cmds.warning("[ASEPicker] Please add FK Controls first so the script knows where to look.")
+            return
+            
+        fk_list = [x.strip() for x in fk_str.split(",") if x.strip()]
+        
+        try:
+            from .anim import logic_ikfk
+            bones = logic_ikfk.auto_find_chain(fk_list)
+            
+            if bones and len(bones) > 0:
+                self.ikfk_bones.setPlainText(", ".join([b.split("|")[-1].split(":")[-1] for b in bones]))
+            else:
+                from maya import cmds
+                cmds.warning("[ASEPicker] Auto-find failed for this rig format. Please select the joints manually and click '+ ADD'.")
+        except Exception as e:
+            from maya import cmds
+            cmds.warning(f"[ASEPicker] Auto-find Error: {e}")
+    
     #-------------------------------------------------------------------------------#
 
     def closeEvent(self, event):

@@ -161,7 +161,7 @@ class PickerController:
             self.smart_sync_all()
 
     def update_window_title(self):
-        title = "ASEPicker 1.0.0"
+        title = "ASEPicker 1.0.1"
         if self.prefs.get("io_show_name"):
             char_tab = self.window.main_tabs.currentWidget()
             if char_tab: title += f" - {char_tab.name}"
@@ -264,10 +264,23 @@ class PickerController:
             _app_instance = None
         
         elif action == "about":
-            QtWidgets.QMessageBox.about(self.window, "About ASEPicker", "ASEPicker V1.0.0\n\nProfessional Rigging & Selection Interface for Maya.")
-            
+            QtWidgets.QMessageBox.about(self.window, "About ASEPicker", "ASEPicker V1.0.1\n\nProfessional Rigging & Selection Interface for Maya.")
+
         elif action == "smart_sync":
             self.smart_sync_all()
+
+        elif action == "open_anim_bar":
+            from .anim import anim_bar
+            if not hasattr(self, "anim_bar_ui") or not self.anim_bar_ui:
+                self.anim_bar_ui = anim_bar.AnimBar(self.window)
+                self.anim_bar_ui.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.FramelessWindowHint)
+            
+            # Smart Toggle: Close it if it's already open!
+            if self.anim_bar_ui.isVisible():
+                self.anim_bar_ui.close()
+            else:
+                self.anim_bar_ui.show()
+                self.anim_bar_ui.raise_()
 
         elif action == "undo": self.perform_undo()
         elif action == "redo": self.perform_redo()
@@ -465,6 +478,7 @@ class PickerController:
         layout_data = {
             "name": self.window.main_tabs.tabText(self.window.main_tabs.currentIndex()),
             "namespace": getattr(char_tab, "namespace", ""),
+            "ikfk_chains": getattr(char_tab, "ikfk_chains", []),
             "subtabs": []
         }
         
@@ -697,6 +711,7 @@ class PickerController:
         char_name = layout_dict.get("name", "Unknown")
         namespace = layout_dict.get("namespace", "")
         char_tab = self.window.add_character_tab(char_name, namespace)
+        char_tab.ikfk_chains = layout_dict.get("ikfk_chains", [])
 
         for sub_data in layout_dict.get("subtabs", []):
             sub_name = sub_data.get("name", "Main")
@@ -1244,7 +1259,7 @@ class PickerController:
                     "OFF": {"attributes":{}, "shapes":[], "text":"OFF", "color":"#3c6e71"}
                 }
             data = item.cb_data[state]
-                
+            
             if action == "add_attr":
                 cb_attrs = cmds.channelBox('mainChannelBox', q=True, selectedMainAttributes=True) or []
                 for obj in maya_sel:
@@ -1259,45 +1274,111 @@ class PickerController:
                 if ui_panel:
                     lst = ui_panel.cb_on_attr if state == "ON" else ui_panel.cb_off_attr
                     if lst.currentItem():
-                        attr_key = lst.currentItem().text().split(":")[0].strip()
-                        if attr_key in data["attributes"]: del data["attributes"][attr_key]
+                        attr_key = lst.currentItem().text().rsplit(":", 1)[0].strip()
+                        if attr_key in data["attributes"]: 
+                            del data["attributes"][attr_key]
             elif action == "clr_attr":
-                data["attributes"] = {}
+                data["attributes"].clear()
 
-            # --- THE MAGIC POP-UP SHAPE PICKER! ---
+            # --- THE FLOATING VISUAL SHAPE PICKER! ---
             elif action == "add_shape":
+                # Close any existing picker first so they don't pile up
+                if hasattr(self.window, "_shape_picker_dlg") and self.window._shape_picker_dlg:
+                    try: self.window._shape_picker_dlg.close()
+                    except: pass
+                    
                 dlg = QtWidgets.QDialog(self.window)
-                dlg.setWindowTitle(f"Add Shapes to {state}")
-                dlg.resize(300, 400)
+                dlg.setWindowTitle(f"Assign Shapes to {state}")
+                
+                # CRITICAL FIX: Make it a floating tool window that doesn't block Maya!
+                dlg.setWindowFlags(QtCore.Qt.Tool | QtCore.Qt.WindowStaysOnTopHint)
+                dlg.resize(320, 380) 
+                
                 lay = QtWidgets.QVBoxLayout(dlg)
                 
+                inst_lbl = QtWidgets.QLabel(
+                    "<b>Visual Selection Mode</b><br>"
+                    "1. Click shapes on the Canvas behind this window.<br>"
+                    "2. Click 'Add Selected' below to queue them.<br>"
+                    "3. Click 'Done' to assign them to the Checkbox."
+                )
+                inst_lbl.setWordWrap(True)
+                inst_lbl.setStyleSheet("color: #cccccc; padding-bottom: 5px;")
+                lay.addWidget(inst_lbl)
+                
+                btn_add = QtWidgets.QPushButton("+ Add Selected Canvas Shapes")
+                btn_add.setStyleSheet("background-color: #5285a6; font-weight: bold; padding: 6px;")
+                lay.addWidget(btn_add)
+                
+                lay.addWidget(QtWidgets.QLabel("Queued Shapes:"))
                 lst = QtWidgets.QListWidget()
-                lst.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-                lay.addWidget(QtWidgets.QLabel("Select Canvas Shapes to assign:"))
                 lay.addWidget(lst)
 
-                # Populate with all valid shapes on the canvas (excluding the checkbox itself)
-                # Populate with all valid shapes on the canvas (excluding the checkbox itself)
-                for i in item.scene().items():
-                    if hasattr(i, "shape_name") and i not in shapes:
-                        label = getattr(i, "label", "").strip()
-                        disp_name = label if label else f"Unnamed ({i.shape_name})"
-                        s_str = f"{i.item_id}::{disp_name}"
-                        li = QtWidgets.QListWidgetItem(disp_name)
-                        li.setData(QtCore.Qt.UserRole, s_str)
-                        lst.addItem(li)
+                queued_ids = set()
 
-                btns = QtWidgets.QDialogButtonBox(QtWidgets.QDialogButtonBox.Ok | QtWidgets.QDialogButtonBox.Cancel)
-                btns.accepted.connect(dlg.accept)
-                btns.rejected.connect(dlg.reject)
-                lay.addWidget(btns)
+                def _add_selected_from_canvas():
+                    canvas = item.scene()
+                    if not canvas: return
+                    
+                    sel_items = [i for i in canvas.selectedItems() if hasattr(i, "shape_name")]
+                    added_count = 0
+                    
+                    for s in sel_items:
+                        # Prevent a Checkbox from assigning itself to its own toggle state
+                        if s in shapes: continue 
+                        
+                        disp_name = getattr(s, "label", "").strip() or f"Unnamed ({s.shape_name})"
+                        s_str = f"{s.item_id}::{disp_name}"
+                        
+                        # Prevent duplicates in the queue OR the existing saved data
+                        existing_shapes = data.get("shapes", [])
+                        if s_str not in existing_shapes and s_str not in queued_ids:
+                            queued_ids.add(s_str)
+                            
+                            li = QtWidgets.QListWidgetItem(disp_name)
+                            li.setData(QtCore.Qt.UserRole, s_str)
+                            lst.addItem(li)
+                            added_count += 1
+                            
+                    if added_count > 0:
+                        btn_add.setText(f"+ Added {added_count} Shapes (Total Queued: {len(queued_ids)})")
+                    else:
+                        btn_add.setText("No new valid shapes selected")
 
-                if getattr(dlg, "exec", dlg.exec_)() == QtWidgets.QDialog.Accepted:
-                    for sel in lst.selectedItems():
-                        s_str = sel.data(QtCore.Qt.UserRole)
-                        if s_str not in data.get("shapes", []):
-                            if "shapes" not in data: data["shapes"] = []
-                            data["shapes"].append(s_str)
+                btn_add.clicked.connect(_add_selected_from_canvas)
+
+                btn_layout = QtWidgets.QHBoxLayout()
+                btn_done = QtWidgets.QPushButton("✔ Done")
+                btn_done.setStyleSheet("background-color: #4CAF50; font-weight: bold; padding: 4px;")
+                btn_cancel = QtWidgets.QPushButton("Cancel")
+                btn_layout.addWidget(btn_done)
+                btn_layout.addWidget(btn_cancel)
+                lay.addLayout(btn_layout)
+
+                def _commit_and_close():
+                    if "shapes" not in data: data["shapes"] = []
+                    for i in range(lst.count()):
+                        data["shapes"].append(lst.item(i).data(QtCore.Qt.UserRole))
+                        
+                    # MAGIC UX UX: Re-select the checkbox so the Editor Panel instantly shows the new list!
+                    try:
+                        canvas = item.scene()
+                        if canvas:
+                            canvas.clearSelection()
+                            for s in shapes:
+                                if s.scene(): # Ensure it hasn't been deleted
+                                    s.setSelected(True)
+                    except Exception:
+                        pass
+                        
+                    dlg.accept()
+
+                btn_done.clicked.connect(_commit_and_close)
+                btn_cancel.clicked.connect(dlg.reject)
+
+                # Store the dialog reference and SHOW it (modeless) instead of exec_()
+                self.window._shape_picker_dlg = dlg
+                dlg.show()
 
             elif action == "rem_shape":
                 ui_panel = getattr(self.window, "editor_panel_ui", None)
