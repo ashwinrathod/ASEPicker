@@ -11,7 +11,7 @@ jobs:
       fail-fast: false # Prevents one failure from cancelling the rest
       matrix:
         # Pinned to stable OS versions to support Python 3.7 compilation
-        os: [windows-2022, macos-13, ubuntu-22.04]
+        os: [windows-2022, ubuntu-22.04] # macos-13
         python-version: ["3.7", "3.9", "3.10", "3.11", "3.12"]
 
     steps:
@@ -24,7 +24,7 @@ jobs:
           python-version: ${{ matrix.python-version }}
 
       - name: Install Dependencies
-        run: python -m pip install --upgrade pip cython
+        run: python -m pip install --upgrade pip cython setuptools wheel
 
       - name: Compile C-Extensions
         run: python setup.py build_ext --inplace
