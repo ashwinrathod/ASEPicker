@@ -1,43 +1,33 @@
-from setuptools import setup
+# setup.py
+from setuptools import setup, Extension
 from Cython.Build import cythonize
 import os
 
-def run_setup():
-    # Notice that hyper_trail_plugin.py is INTENTIONALLY MISSING!
-    # It must remain a raw .py file so Maya can load it as a plugin.
-    files_to_compile = [
-        "core.py", 
-        "security.py", 
-        "api.py", 
-        "layout_io.py", 
-        "main.py",
-        "alignment_panel.py",
-        "editor_panel.py",
-        "picker_shapes.py",
-        "preferences.py",
-        "script_editor.py",
-        "ui.py",
-        "anim/anim_bar.py",
-        "anim/clipboard.py",
-        "anim/logic_anim.py",
-        "anim/logic_ikfk.py",
-        "anim/logic_pose.py",
-        "anim/snapshot.py",
-        "anim/trail.py"
-    ]
-    target_files = []
-    
-    for f in files_to_compile:
-        if os.path.exists(f):
-            target_files.append(f)
-        elif os.path.exists("ASEPicker/" + f):
-            target_files.append("ASEPicker/" + f)
-            
-    if not target_files:
-        print("ERROR: Could not find Python files to compile!")
-        return
-        
-    exts = cythonize(target_files)
-    setup(ext_modules=exts)
+# Files we absolutely DO NOT want to compile
+IGNORE_FILES = ["__init__.py", "hyper_trail_plugin.py"]
 
-run_setup()
+extensions = []
+
+# Walk through all folders and subfolders inside ASEPicker
+for root, dirs, files in os.walk("ASEPicker"):
+    for file in files:
+        if file.endswith(".py") and file not in IGNORE_FILES:
+            
+            # Get the exact file path (e.g., ASEPicker/anim/logic_anim.py)
+            file_path = os.path.join(root, file)
+            
+            # Convert the file path into a strict Python module name
+            # 1. Remove .py
+            module_name = file_path.replace(".py", "")
+            # 2. Replace BOTH Windows and Mac/Linux slashes with dots
+            module_name = module_name.replace("\\", ".").replace("/", ".")
+            
+            # Create the exact Extension target
+            extensions.append(Extension(module_name, [file_path]))
+
+if not extensions:
+    print("ERROR: Could not find Python files to compile!")
+else:
+    setup(
+        ext_modules=cythonize(extensions, compiler_directives={'language_level': "3"})
+    )
