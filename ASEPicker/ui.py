@@ -118,7 +118,7 @@ class PickerWindow(QtWidgets.QMainWindow):
     def closeEvent(self, event):
         self.window_closed.emit()
         self.menu_action_requested.emit("close")
-        super(PickerWindow, self).closeEvent(event)
+        QtWidgets.QMainWindow.closeEvent(self, event)
 
     def __init__(self, parent=None):
         if parent is None: parent = get_maya_main_window()
@@ -1804,13 +1804,11 @@ class PickerCanvas(QtWidgets.QGraphicsView):
                 item.setFlag(QtWidgets.QGraphicsItem.ItemIgnoresTransformations, False)
 
     def scrollContentsBy(self, dx, dy):
-        super().scrollContentsBy(dx, dy)
-        # THE FIX: Remove the timer here! Panning must be synchronous to avoid flickering!
+        QtWidgets.QGraphicsView.scrollContentsBy(self, dx, dy)
         self.update_screen_items()
 
     def resizeEvent(self, event):
-        super().resizeEvent(event)
-        # (Keep the timer here for resizing only)
+        QtWidgets.QGraphicsView.resizeEvent(self, event)
         QtCore.QTimer.singleShot(0, self.update_screen_items)
 
     def wheelEvent(self, event):
