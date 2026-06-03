@@ -12,7 +12,7 @@ jobs:
       matrix:
         # Pinned to stable OS versions to support Python 3.7 compilation
         os: [windows-2022, ubuntu-22.04] # macos-13
-        python-version: ["3.7", "3.9", "3.10", "3.11", "3.12"]
+        python-version: ["3.7", "3.9", "3.10", "3.11", "3.13"]
 
     steps:
       - name: Checkout Code
