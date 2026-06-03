@@ -690,7 +690,7 @@ class PickerCanvas(QtWidgets.QGraphicsView):
     slider_moved = QtCore.Signal(object, float)
 
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super(PickerCanvas, self).__init__(parent)
         self.scene = QtWidgets.QGraphicsScene(self)
         self.setScene(self.scene)
         self.scene.setSceneRect(-32000, -32000, 64000, 64000)
