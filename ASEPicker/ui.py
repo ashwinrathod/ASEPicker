@@ -38,7 +38,7 @@ class CharacterTab(QtWidgets.QWidget):
         self.sub_tabs.tabBar().customContextMenuRequested.connect(self.show_tab_menu)
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self.show_tab_menu)
-        self.sub_tabs.currentChanged.connect(lambda idx: self.window().menu_action_requested.emit("smart_sync") if hasattr(self.window(), "menu_action_requested") else None)
+        self.sub_tabs.currentChanged.connect(self._on_subtab_changed)
     
     def add_sub_tab(self, name):
         sub = SubTab(name, self)
@@ -75,6 +75,12 @@ class CharacterTab(QtWidgets.QWidget):
             if self.sub_tabs.count() > 0:
                 confirm = QtWidgets.QMessageBox.question(self, "Delete Tab", "Delete this tab and all its shapes?", QtWidgets.QMessageBox.Yes | QtWidgets.QMessageBox.No)
                 if confirm == QtWidgets.QMessageBox.Yes: self.sub_tabs.removeTab(idx)
+
+    def _on_subtab_changed(self, idx):
+        # Only trigger Smart Sync if the tool is fully booted and visible!
+        win = self.window()
+        if win and win.isVisible() and hasattr(win, "menu_action_requested"):
+            win.menu_action_requested.emit("smart_sync")
 
 ################################################
 
