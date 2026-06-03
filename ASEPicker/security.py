@@ -7,12 +7,10 @@ import datetime
 import socket
 import getpass
 import os
-import importlib
-import importlib.util
 
-if importlib.util.find_spec("PySide2"):
+try:
     from PySide2 import QtWidgets
-else:
+except ImportError:
     from PySide6 import QtWidgets
 
 # --- BUILDING ASEPICKER MODE POWERFULL ---
