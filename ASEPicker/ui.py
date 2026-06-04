@@ -648,7 +648,8 @@ class PickerWindow(QtWidgets.QMainWindow):
             rename_act = menu.addAction("Rename Tab")
             delete_act = menu.addAction("Delete Tab")
             
-        action = getattr(menu, "exec", menu.exec_)(self.main_tabs.mapToGlobal(pos))
+        exec_func = getattr(menu, "exec", None) or menu.exec_
+        action = exec_func(self.main_tabs.mapToGlobal(pos))
         if not action: return
         
         # --- Defer Dialogs to prevent event loop hanging and ghost menus! ---
