@@ -1714,6 +1714,7 @@ class PickerCanvas(QtWidgets.QGraphicsView):
 
         # EXECUTION
         action = getattr(menu, "exec", menu.exec_)(event.globalPos())
+        event.accept()
         if not action: return
 
         # Custom Script Routing
