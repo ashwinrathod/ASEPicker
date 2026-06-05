@@ -37,17 +37,16 @@ jobs:
       - name: Organize Binaries
         run: |
           python -c "
-          import os, shutil, sys
-
-          # Detect OS and Python version exactly like our install.py script
+          import os
+          import shutil
+          import sys
+          
           plat = sys.platform
           os_name = 'win' if plat == 'win32' else 'mac' if plat == 'darwin' else 'linux'
           py_ver = f'{sys.version_info.major}{sys.version_info.minor}'
           
-          # Construct the target build folder
           out_dir = f'build_output/{os_name}/py{py_ver}'
 
-          # Walk through ASEPicker and find EVERY compiled file, uncompiled file, and asset
           for root, dirs, files in os.walk('ASEPicker'):
               for f in files:
                   src_path = os.path.join(root, f)
