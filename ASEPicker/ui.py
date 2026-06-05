@@ -441,27 +441,27 @@ class PickerWindow(QtWidgets.QMainWindow):
         
         act_open = self.main_menu.addAction("📂 Open...")
         act_open.setShortcut("Ctrl+O")
-        act_open.triggered.connect(lambda: self.menu_action_requested.emit("open"))
+        act_open.triggered.connect(lambda *args: self.menu_action_requested.emit("open"))
         
         act_save = self.main_menu.addAction("💾 Save")
         act_save.setShortcut("Ctrl+S")
-        act_save.triggered.connect(lambda: self.menu_action_requested.emit("save"))
+        act_save.triggered.connect(lambda *args: self.menu_action_requested.emit("save"))
         
         act_save_as = self.main_menu.addAction("💾 Save As...")
         act_save_as.setShortcut("Ctrl+Shift+S")
-        act_save_as.triggered.connect(lambda: self.menu_action_requested.emit("save_as"))
+        act_save_as.triggered.connect(lambda *args: self.menu_action_requested.emit("save_as"))
         
-        self.main_menu.addAction("📦 Save to Scene").triggered.connect(lambda: self.menu_action_requested.emit("save_scene"))
+        self.main_menu.addAction("📦 Save to Scene").triggered.connect(lambda *args: self.menu_action_requested.emit("save_scene"))
         self.main_menu.addSeparator()
         
-        self.main_menu.addAction("🔄 Smart Sync UI").triggered.connect(lambda: self.menu_action_requested.emit("smart_sync"))
+        self.main_menu.addAction("🔄 Smart Sync UI").triggered.connect(lambda *args: self.menu_action_requested.emit("smart_sync"))
         self.main_menu.addSeparator()
         
         anim_menu = self.main_menu.addMenu("🎬 Anim Tools")
-        anim_menu.addAction("Floating Anim Bar").triggered.connect(lambda: self.menu_action_requested.emit("open_anim_bar"))
+        anim_menu.addAction("Floating Anim Bar").triggered.connect(lambda *args: self.menu_action_requested.emit("open_anim_bar"))
         self.main_menu.addSeparator()
 
-        self.main_menu.addAction("⚙️ Preferences").triggered.connect(lambda: self.prefs_requested.emit())
+        self.main_menu.addAction("⚙️ Preferences").triggered.connect(lambda *args: self.prefs_requested.emit())
         self.main_menu.addSeparator()
         
         self.main_menu.addAction("📖 Help / API Guide").triggered.connect(self.show_api_help)
@@ -476,7 +476,7 @@ class PickerWindow(QtWidgets.QMainWindow):
         self.main_menu.addSeparator()
         
         self.main_menu.addAction("❌ Close").triggered.connect(self.close)
-        self.main_menu.addAction("💀 Kill ASEPicker").triggered.connect(lambda: self.menu_action_requested.emit("kill"))
+        self.main_menu.addAction("💀 Kill ASEPicker").triggered.connect(lambda *args: self.menu_action_requested.emit("kill"))
         
         self.btn_menu.setMenu(self.main_menu)
         
@@ -520,7 +520,7 @@ class PickerWindow(QtWidgets.QMainWindow):
         self.ns_menu.addAction("✨ Set Selected Namespace").triggered.connect(self._set_ns_from_selection)
         self.ns_menu.addSeparator()
         self.ns_menu.addAction("➕ Add Namespace...").triggered.connect(self._add_manual_ns)
-        self.ns_menu.addAction("🧹 Clear Namespace").triggered.connect(lambda: self._set_namespace(""))
+        self.ns_menu.addAction("🧹 Clear Namespace").triggered.connect(lambda *args: self._set_namespace(""))
         self.ns_menu.addSeparator()
         self.namespace_refresh_requested.emit()
 
