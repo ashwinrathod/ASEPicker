@@ -19,10 +19,10 @@ class SubTab(QtWidgets.QWidget):
     def __init__(self, name='Main', parent=None):
         QtWidgets.QWidget.__init__(self, parent)
         self.name = name
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setContentsMargins(0, 0, 0, 0)
+        self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.canvas = PickerCanvas(self)
-        self.layout.addWidget(self.canvas)
+        self.main_layout.addWidget(self.canvas)
 
 class CharacterTab(QtWidgets.QWidget):
     def __init__(self, name='Character', namespace='', parent=None):
@@ -30,11 +30,11 @@ class CharacterTab(QtWidgets.QWidget):
         self.name = name
         self.namespace = namespace
         self.ikfk_chains = []
-        self.layout = QtWidgets.QVBoxLayout(self)
-        self.layout.setContentsMargins(4, 4, 4, 4)
+        self.main_layout = QtWidgets.QVBoxLayout(self)
+        self.main_layout.setContentsMargins(4, 4, 4, 4)
         
         self.sub_tabs = QtWidgets.QTabWidget(self)
-        self.layout.addWidget(self.sub_tabs)
+        self.main_layout.addWidget(self.sub_tabs)
         self.sub_tabs.tabBar().setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         
         if hasattr(self, "show_tab_menu"):
@@ -906,7 +906,7 @@ class PickerCanvas(QtWidgets.QGraphicsView):
         vp_size = self.viewport().size()
         w, h = vp_size.width(), vp_size.height()
 
-        if not hasattr(self, "scene") or not self.scene: return
+        if self.scene() is None: return
         
         for item in self.scene().items():
             if getattr(item, "placement_mode", "world") == "screen":
