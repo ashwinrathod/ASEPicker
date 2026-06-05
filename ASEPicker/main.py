@@ -26,6 +26,7 @@ _app_instance = None
 
 class PickerController:
     def __init__(self):
+        global cmds
         self.core = core.PickerCore()
         
         # INIT PREFERENCES
