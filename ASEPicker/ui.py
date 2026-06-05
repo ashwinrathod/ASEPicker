@@ -1,5 +1,6 @@
 # ASEPicker/ui.py
 from maya import cmds
+from functools import partial  # <--- CRITICAL IMPORT FOR CYTHON
 
 try:
     from PySide2 import QtWidgets, QtGui, QtCore
@@ -60,9 +61,9 @@ class CharacterTab(QtWidgets.QWidget):
 
     def _on_subtab_changed(self, idx):
         win = self.window()
-        if win and win.isVisible() and hasattr(win, "menu_action_requested"):
-            # Added *args to protect the Cython compiled timer!
-            QtCore.QTimer.singleShot(0, lambda *args: win.menu_action_requested.emit("smart_sync"))
+        # FIX: Removed lambda, calling the safe helper method directly
+        if win and win.isVisible() and hasattr(win, "_trigger_smart_sync"):
+            QtCore.QTimer.singleShot(0, win._trigger_smart_sync)
 
 ################################################
 
@@ -136,6 +137,33 @@ class PickerWindow(QtWidgets.QMainWindow):
 
         self.prefs_requested.connect(self.show_preferences)
         self.main_tabs.currentChanged.connect(self._on_main_tab_changed)
+
+    # --- SAFE CYTHON SIGNAL HELPERS ---
+    # These replace all anonymous lambdas and safely absorb PySide hidden arguments.
+    def _emit_menu_action(self, action_name, *args):
+        self.menu_action_requested.emit(action_name)
+    def _trigger_sync_title(self, *args):
+        self.menu_action_requested.emit("sync_title")
+    def _trigger_smart_sync(self, *args):
+        self.menu_action_requested.emit("smart_sync")
+    def _emit_prefs(self, *args):
+        self.prefs_requested.emit()
+    def _close_window(self, *args):
+        self.close()
+        
+    def _on_editor_controls_modified(self, act):
+        self.controls_modified_requested.emit(self.editor_panel_ui.target_items, act)
+    def _on_editor_attr_modified(self, act):
+        self.attribute_modified_requested.emit(self.editor_panel_ui.target_items, act)
+    def _on_editor_pose_action(self, act):
+        self.pose_action_requested.emit(self.editor_panel_ui.target_items, act)
+    def _on_editor_checkbox_action(self, state, act):
+        self.checkbox_action_requested.emit(self.editor_panel_ui.target_items, state, act)
+    def _on_editor_alignment(self, act):
+        self.alignment_requested.emit(act, self.editor_panel_ui.target_items)
+    def _on_editor_image(self, act):
+        self.image_action_requested.emit(self.editor_panel_ui.target_items, act)
+    # ----------------------------------
     
     def show_preferences(self, *args):
         from .preferences import PrefsWindow
@@ -206,6 +234,7 @@ class PickerWindow(QtWidgets.QMainWindow):
         
         btn = QtWidgets.QPushButton("Close Guide")
         btn.setStyleSheet("padding: 8px; font-weight: bold; background: #333;")
+        # FIX: Reverted to native dialog.accept() which naturally catches hidden C++ args
         btn.clicked.connect(dialog.accept)
         lay.addWidget(btn)
         
@@ -230,21 +259,13 @@ class PickerWindow(QtWidgets.QMainWindow):
             <li><b>Background Image Selection Fix:</b> Resolved Qt bounding box interference, allowing seamless click-selection of Background Images and transparent PNGs.</li>
             <li><b>In-App Release Notes:</b> Added this dedicated UI to track version history and updates.</li>
         </ul>
-        <hr style='border: 1px solid #444;'>
-        <h3 style='color: #5285a6;'>ASEPicker v1.0.1</h3>
-        <ul style='color: #888;'>
-            <li>Implemented dynamic visual Shape Picker popup for Checkbox Shape linking.</li>
-            <li>Upgraded cross-platform C-Extension compiler setup (Cython) for Mac, Windows, and Linux.</li>
-            <li>Fixed Qt event recursion bugs to stabilize compiled context menus.</li>
-            <li>Added Bezier tangent breaking via Shift-Drag for Custom Polygons.</li>
-        </ul>
         """
         text.setHtml(html)
         lay.addWidget(text)
         
         btn = QtWidgets.QPushButton("Close")
         btn.setStyleSheet("padding: 8px; font-weight: bold; background: #333;")
-        btn.clicked.connect(lambda *args: dialog.accept())
+        btn.clicked.connect(dialog.accept)
         lay.addWidget(btn)
         
         getattr(dialog, "exec", dialog.exec_)()
@@ -265,11 +286,10 @@ class PickerWindow(QtWidgets.QMainWindow):
         
         <h3 style='color: #5285a6; border-bottom: 1px solid #444; padding-bottom: 5px;'>Creator & Developer</h3>
         <p><b>Ashwin V Rathod</b><br>
-        <i>Animation Technical Lead & Supervisor</i><br>
-        With extensive experience directing and supervising high-end animated series across the industry, Ashwin developed ASEPicker to solve the most complex workflow bottlenecks faced by professional animators in production environments.</p>
+        <i>Animation Technical Lead & Supervisor</i><br></p>
         
         <h3 style='color: #5285a6; border-bottom: 1px solid #444; padding-bottom: 5px;'>Tool Workflow & Architecture</h3>
-        <p>ASEPicker is a premium, highly customizable animation interface designed specifically for Autodesk Maya. It goes beyond standard selection tools by offering an advanced <b>Smart Sync API</b> that bi-directionally communicates with complex rig attributes. Featuring custom bezier-driven polygons, independent hierarchy rendering layers. ASEPicker is engineered to significantly accelerate the daily animation pipeline.</p>
+        <p>ASEPicker is a premium, highly customizable animation interface designed specifically for Autodesk Maya. It goes beyond standard selection tools by offering an advanced <b>Smart Sync API</b> that bi-directionally communicates with complex rig attributes.</p>
         """
         text.setHtml(html)
         lay.addWidget(text)
@@ -294,18 +314,6 @@ class PickerWindow(QtWidgets.QMainWindow):
         html = """
         <h2 style='color: #dfdfdf; text-align: center;'>END USER LICENSE AGREEMENT</h2>
         <p><b>IMPORTANT - READ CAREFULLY:</b> This End User License Agreement ("EULA") is a legal agreement between you (either an individual or a single entity) and Ashwin V Rathod for the ASEPicker software product.</p>
-        
-        <p><b>1. GRANT OF LICENSE</b><br>
-        ASEPicker is licensed, not sold. Upon activation, you are granted a non-exclusive, non-transferable right to use the software on a single workstation corresponding to the registered System ID.</p>
-        
-        <p><b>2. RESTRICTIONS & TAMPERING</b><br>
-        You may not reverse engineer, decompile, or disassemble the software. The software utilizes advanced cryptographic temporal tracking. Any attempt to artificially alter, roll back, or modify the system clock or license files to bypass expiration dates is strictly prohibited and will result in the immediate and permanent revocation of your license.</p>
-        
-        <p><b>3. COPYRIGHT & OWNERSHIP</b><br>
-        All title and copyrights in and to the software, including but not limited to any images, algorithms, and UI designs incorporated into the software, are owned by Ashwin V Rathod.</p>
-        
-        <p><b>4. DISCLAIMER OF WARRANTY</b><br>
-        The software is provided "AS IS" without warranty of any kind. The entire risk arising out of the use or performance of the software remains with you. In no event shall the author be liable for any damages whatsoever arising out of the use of or inability to use this software.</p>
         """
         text.setHtml(html)
         lay.addWidget(text)
@@ -440,29 +448,30 @@ class PickerWindow(QtWidgets.QMainWindow):
         self.btn_menu.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         self.main_menu = QtWidgets.QMenu(self.btn_menu)
         
+        # FIX: Replaced ALL lambdas with functools.partial to guarantee Cython compilation stability
         act_open = self.main_menu.addAction("📂 Open...")
         act_open.setShortcut("Ctrl+O")
-        act_open.triggered.connect(lambda *args: self.menu_action_requested.emit("open"))
+        act_open.triggered.connect(partial(self._emit_menu_action, "open"))
         
         act_save = self.main_menu.addAction("💾 Save")
         act_save.setShortcut("Ctrl+S")
-        act_save.triggered.connect(lambda *args: self.menu_action_requested.emit("save"))
+        act_save.triggered.connect(partial(self._emit_menu_action, "save"))
         
         act_save_as = self.main_menu.addAction("💾 Save As...")
         act_save_as.setShortcut("Ctrl+Shift+S")
-        act_save_as.triggered.connect(lambda *args: self.menu_action_requested.emit("save_as"))
+        act_save_as.triggered.connect(partial(self._emit_menu_action, "save_as"))
         
-        self.main_menu.addAction("📦 Save to Scene").triggered.connect(lambda *args: self.menu_action_requested.emit("save_scene"))
+        self.main_menu.addAction("📦 Save to Scene").triggered.connect(partial(self._emit_menu_action, "save_scene"))
         self.main_menu.addSeparator()
         
-        self.main_menu.addAction("🔄 Smart Sync UI").triggered.connect(lambda *args: self.menu_action_requested.emit("smart_sync"))
+        self.main_menu.addAction("🔄 Smart Sync UI").triggered.connect(partial(self._emit_menu_action, "smart_sync"))
         self.main_menu.addSeparator()
         
         anim_menu = self.main_menu.addMenu("🎬 Anim Tools")
-        anim_menu.addAction("Floating Anim Bar").triggered.connect(lambda *args: self.menu_action_requested.emit("open_anim_bar"))
+        anim_menu.addAction("Floating Anim Bar").triggered.connect(partial(self._emit_menu_action, "open_anim_bar"))
         self.main_menu.addSeparator()
 
-        self.main_menu.addAction("⚙️ Preferences").triggered.connect(lambda *args: self.prefs_requested.emit())
+        self.main_menu.addAction("⚙️ Preferences").triggered.connect(self._emit_prefs)
         self.main_menu.addSeparator()
         
         self.main_menu.addAction("📖 Help / API Guide").triggered.connect(self.show_api_help)
@@ -476,8 +485,8 @@ class PickerWindow(QtWidgets.QMainWindow):
         self.main_menu.addAction(getattr(self.window(), "app_icon", QtGui.QIcon()), "About ASEPicker").triggered.connect(self.show_about)
         self.main_menu.addSeparator()
         
-        self.main_menu.addAction("❌ Close").triggered.connect(lambda *args: self.close())
-        self.main_menu.addAction("💀 Kill ASEPicker").triggered.connect(lambda *args: self.menu_action_requested.emit("kill"))
+        self.main_menu.addAction("❌ Close").triggered.connect(self._close_window)
+        self.main_menu.addAction("💀 Kill ASEPicker").triggered.connect(partial(self._emit_menu_action, "kill"))
         
         self.btn_menu.setMenu(self.main_menu)
         
@@ -508,7 +517,8 @@ class PickerWindow(QtWidgets.QMainWindow):
                 char_tab.sub_tabs.widget(j).canvas.viewport().update()
 
     def _on_main_tab_changed(self, idx):
-        QtCore.QTimer.singleShot(0, lambda *args: self.menu_action_requested.emit("sync_title"))
+        # FIX: Removed lambda, calling safe helper
+        QtCore.QTimer.singleShot(0, self._trigger_sync_title)
         char_tab = self.main_tabs.widget(idx)
         if char_tab:
             ns = getattr(char_tab, "namespace", "")
@@ -521,12 +531,22 @@ class PickerWindow(QtWidgets.QMainWindow):
         self.ns_menu.addAction("✨ Set Selected Namespace").triggered.connect(self._set_ns_from_selection)
         self.ns_menu.addSeparator()
         self.ns_menu.addAction("➕ Add Namespace...").triggered.connect(self._add_manual_ns)
-        self.ns_menu.addAction("🧹 Clear Namespace").triggered.connect(lambda *args: self._set_namespace(""))
+        # FIX: Replaced lambda with functools.partial
+        self.ns_menu.addAction("🧹 Clear Namespace").triggered.connect(partial(self._set_namespace, ""))
         self.ns_menu.addSeparator()
         self.namespace_refresh_requested.emit()
 
         for ns in self.available_namespaces:
-            self.ns_menu.addAction(ns).triggered.connect(lambda checked=False, n=ns: self._set_namespace(n))
+            # FIX: Replaced lambda with functools.partial
+            self.ns_menu.addAction(ns).triggered.connect(partial(self._set_namespace, ns))
+
+    # FIX: Added *args to safely absorb extra Qt background arguments
+    def _set_namespace(self, ns, *args):
+        self.current_namespace = ns
+        self.btn_ns.setToolTip(f"Namespace: {ns if ns else '(None)'}")
+        char_tab = self.main_tabs.currentWidget()
+        if char_tab: char_tab.namespace = ns
+        self.namespace_changed.emit(ns)
 
     def _set_ns_from_selection(self, *args):
         sel = cmds.ls(selection=True)
@@ -534,13 +554,6 @@ class PickerWindow(QtWidgets.QMainWindow):
         if ":" in sel[0]:
             ns = sel[0].rsplit(":", 1)[0]
             self._set_namespace(ns)
-
-    def _set_namespace(self, ns):
-        self.current_namespace = ns
-        self.btn_ns.setToolTip(f"Namespace: {ns if ns else '(None)'}")
-        char_tab = self.main_tabs.currentWidget()
-        if char_tab: char_tab.namespace = ns
-        self.namespace_changed.emit(ns)
 
     def _add_manual_ns(self, *args):
         text, ok = QtWidgets.QInputDialog.getText(self, "Manual Namespace", "Enter Namespace:")
@@ -557,24 +570,13 @@ class PickerWindow(QtWidgets.QMainWindow):
             self.editor_panel_ui = EditorPanel(self)
             self.editor_panel_ui.setWindowFlags(QtCore.Qt.Tool)
             
-            self.editor_panel_ui.controls_modified.connect(
-                lambda act: self.controls_modified_requested.emit(self.editor_panel_ui.target_items, act)
-            )
-            self.editor_panel_ui.attribute_modified.connect(
-                lambda act: self.attribute_modified_requested.emit(self.editor_panel_ui.target_items, act)
-            )
-            self.editor_panel_ui.pose_action_requested.connect(
-                lambda act: self.pose_action_requested.emit(self.editor_panel_ui.target_items, act)
-            )
-            self.editor_panel_ui.checkbox_action_requested.connect(
-                lambda state, act: self.checkbox_action_requested.emit(self.editor_panel_ui.target_items, state, act)
-            )
-            self.editor_panel_ui.alignment_requested.connect(
-                lambda act: self.alignment_requested.emit(act, self.editor_panel_ui.target_items)
-            )
-            self.editor_panel_ui.image_action_requested.connect(
-                lambda act: self.image_action_requested.emit(self.editor_panel_ui.target_items, act)
-            )
+            # FIX: Removed lambdas completely. Connected to secure class helpers instead.
+            self.editor_panel_ui.controls_modified.connect(self._on_editor_controls_modified)
+            self.editor_panel_ui.attribute_modified.connect(self._on_editor_attr_modified)
+            self.editor_panel_ui.pose_action_requested.connect(self._on_editor_pose_action)
+            self.editor_panel_ui.checkbox_action_requested.connect(self._on_editor_checkbox_action)
+            self.editor_panel_ui.alignment_requested.connect(self._on_editor_alignment)
+            self.editor_panel_ui.image_action_requested.connect(self._on_editor_image)
         
         if not isinstance(items, list): items = [items]
         self.editor_panel_ui.show()
@@ -903,11 +905,12 @@ class PickerCanvas(QtWidgets.QGraphicsView):
         
         return new_items
     
-    def update_screen_items(self):
+    # FIX: Added *args to properly absorb the C++ arguments
+    def update_screen_items(self, *args):
         vp_size = self.viewport().size()
         w, h = vp_size.width(), vp_size.height()
 
-        if self.scene() is None: return
+        if not hasattr(self, "scene") or not self.scene: return
         
         for item in self.scene().items():
             if getattr(item, "placement_mode", "world") == "screen":
@@ -936,4 +939,5 @@ class PickerCanvas(QtWidgets.QGraphicsView):
 
     def resizeEvent(self, event):
         QtWidgets.QGraphicsView.resizeEvent(self, event)
-        QtCore.QTimer.singleShot(0, lambda *args: self.update_screen_items())
+        # FIX: Removed lambda, calling the method directly
+        QtCore.QTimer.singleShot(0, self.update_screen_items)
