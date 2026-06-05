@@ -48,7 +48,6 @@ class PickerController:
         self.io = security.enforce_license(self.window)
         
         # [SECURITY LAYER 2] The Compiled-to-Compiled Handshake
-        # Check if the secret stamp matches. This string is permanently hidden inside main.pyd!
         expected_stamp = "JAY_SHREE_KRISHNA_1986"
         if not self.io or getattr(self.io, "_ase_secure_stamp", "") != expected_stamp:
             from maya import cmds
