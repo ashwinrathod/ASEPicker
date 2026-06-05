@@ -39,7 +39,6 @@ class PickerController:
         
         # [SECURITY LAYER 1] Block uncompiled text file replacements
         if hasattr(security, '__file__') and security.__file__.endswith(('.py', '.pyc', '.pyw')):
-            from maya import cmds
             cmds.warning("[ASEPicker] Security module tampering detected. Boot aborted.")
             self.window.close()
             return
@@ -50,7 +49,6 @@ class PickerController:
         # [SECURITY LAYER 2] The Compiled-to-Compiled Handshake
         expected_stamp = "JAY_SHREE_KRISHNA_1986"
         if not self.io or getattr(self.io, "_ase_secure_stamp", "") != expected_stamp:
-            from maya import cmds
             cmds.warning("[ASEPicker] Invalid memory allocation. Boot aborted.")
             self.window.close()
             return
