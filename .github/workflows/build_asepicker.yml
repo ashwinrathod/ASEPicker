@@ -47,24 +47,24 @@ jobs:
           # Construct the target build folder
           out_dir = f'build_output/{os_name}/py{py_ver}'
 
-          # Walk through ASEPicker and find EVERY compiled file
+          # Walk through ASEPicker and find EVERY compiled file, uncompiled file, and asset
           for root, dirs, files in os.walk('ASEPicker'):
               for f in files:
+                  src_path = os.path.join(root, f)
+                  rel_path = os.path.relpath(src_path, 'ASEPicker')
+                  target_dir = os.path.join(out_dir, os.path.dirname(rel_path))
+                  
+                  if not os.path.exists(target_dir): 
+                      os.makedirs(target_dir)
+                      
                   if f.endswith(('.pyd', '.so')):
-                      src_path = os.path.join(root, f)
-                      
-                      # Recreate the folder structure (e.g., /anim)
-                      rel_path = os.path.relpath(src_path, 'ASEPicker')
-                      target_dir = os.path.join(out_dir, os.path.dirname(rel_path))
-                      
-                      if not os.path.exists(target_dir): 
-                          os.makedirs(target_dir)
-                          
-                      # Clean the complex Cython tags (e.g. logic_anim.cp39-win_amd64.pyd -> logic_anim.pyd)
                       base = os.path.basename(rel_path)
                       clean_name = base.split('.')[0] + '.' + base.split('.')[-1]
-                      
                       shutil.move(src_path, os.path.join(target_dir, clean_name))
+                  elif f.endswith('.py') and f in ['__init__.py', 'hyper_trail_plugin.py', 'mouse_magic.py', 'editor_panel.py', 'alignment_panel.py', 'script_editor.py', 'preferences.py', 'layout_io.py']:
+                      shutil.copy2(src_path, os.path.join(target_dir, f))
+                  elif not f.endswith(('.py', '.c', '.pyx')):
+                      shutil.copy2(src_path, os.path.join(target_dir, f))
           "
         shell: bash
 
