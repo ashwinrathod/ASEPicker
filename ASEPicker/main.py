@@ -26,7 +26,6 @@ _app_instance = None
 
 class PickerController:
     def __init__(self):
-        global cmds
         self.core = core.PickerCore()
         
         # INIT PREFERENCES
@@ -40,7 +39,8 @@ class PickerController:
         
         # [SECURITY LAYER 1] Block uncompiled text file replacements
         if hasattr(security, '__file__') and security.__file__.endswith(('.py', '.pyc', '.pyw')):
-            cmds.warning("[ASEPicker] Security module tampering detected. Boot aborted.")
+            import maya.cmds as mc
+            mc.warning("[ASEPicker] Security module tampering detected. Boot aborted.")
             self.window.close()
             return
 
@@ -50,7 +50,8 @@ class PickerController:
         # [SECURITY LAYER 2] The Compiled-to-Compiled Handshake
         expected_stamp = "JAY_SHREE_KRISHNA_1986"
         if not self.io or getattr(self.io, "_ase_secure_stamp", "") != expected_stamp:
-            cmds.warning("[ASEPicker] Invalid memory allocation. Boot aborted.")
+            import maya.cmds as mc
+            mc.warning("[ASEPicker] Invalid memory allocation. Boot aborted.")
             self.window.close()
             return
         # --------------------------------------
