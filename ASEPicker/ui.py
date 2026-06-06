@@ -62,8 +62,8 @@ class CharacterTab(QtWidgets.QWidget):
     def _on_subtab_changed(self, idx):
         win = self.window()
         if win and win.isVisible() and hasattr(win, "_trigger_smart_sync"):
-            # Bypass Qt Timer completely using Maya's native deferred evaluation
-            cmds.evalDeferred(win._trigger_smart_sync)
+            if not getattr(win, "_is_loading", False):
+                cmds.evalDeferred(win._trigger_smart_sync)
 
 ################################################
 
@@ -522,7 +522,8 @@ class PickerWindow(QtWidgets.QMainWindow):
             ns = getattr(char_tab, "namespace", "")
             self.current_namespace = ns
             self.btn_ns.setToolTip(f"Namespace: {ns if ns else '(None)'}")
-            self.namespace_changed.emit(ns)
+            if not getattr(self, "_is_loading", False):
+                self.namespace_changed.emit(ns)
 
     def _populate_ns_menu(self, *args):
         self.ns_menu.clear()
