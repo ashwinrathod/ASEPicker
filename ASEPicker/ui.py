@@ -440,7 +440,7 @@ class PickerWindow(QtWidgets.QMainWindow):
         self.btn_ns.setPopupMode(QtWidgets.QToolButton.InstantPopup)
         self.ns_menu = QtWidgets.QMenu(self.btn_ns)
         self.btn_ns.setMenu(self.ns_menu)
-        self.ns_menu.aboutToShow.connect(self._populate_ns_menu)
+        self.ns_menu.aboutToShow.connect(partial(self._populate_ns_menu))
         
         self.btn_menu = QtWidgets.QToolButton()
         self.btn_menu.setText("☰")
@@ -497,17 +497,20 @@ class PickerWindow(QtWidgets.QMainWindow):
         
         self.main_tabs.setCornerWidget(self.corner_widget, QtCore.Qt.TopRightCorner)
 
-    def _on_edit_toggled(self, checked):
+    def _on_edit_toggled(self, *args, **kwargs):
+        checked = self.btn_edit.isChecked()
         self.btn_edit.setText("Edit" if checked else "Pose")
         self.is_edit_mode = checked
         self.edit_mode_toggled.emit(checked)
         
-    def _on_bg_lock_toggled(self, checked):
+    def _on_bg_lock_toggled(self, *args, **kwargs):
+        checked = self.btn_bg_lock.isChecked()
         self.btn_bg_lock.setStyleSheet("color: #4CAF50;" if checked else "")
         self.bg_locked = checked
         self.bg_lock_toggled.emit(checked)
 
-    def _on_hier_toggled(self, checked):
+    def _on_hier_toggled(self, *args, **kwargs):
+        checked = self.btn_hier.isChecked()
         self.btn_hier.setStyleSheet("color: #4CAF50;" if checked else "")
         self.hier_toggled.emit(checked)
         for i in range(self.main_tabs.count()):
@@ -525,7 +528,7 @@ class PickerWindow(QtWidgets.QMainWindow):
             if not getattr(self, "_is_loading", False):
                 self.namespace_changed.emit(ns)
 
-    def _populate_ns_menu(self, *args):
+    def _populate_ns_menu(self, *args, **kwargs):
         self.ns_menu.clear()
         self.ns_menu.addAction("✨ Set Selected Namespace").triggered.connect(partial(self._set_ns_from_selection))
         self.ns_menu.addSeparator()
