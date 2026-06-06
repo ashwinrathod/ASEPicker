@@ -1732,7 +1732,7 @@ class EditorPanel(QtWidgets.QWidget):
         # --- FIX: Reset visibility of shapes before deleting the layer ---
         layer_to_delete = next((l for l in canvas.layer_data if l["id"] == l_id), None)
         if layer_to_delete:
-            for item in canvas.scene.items():
+            for item in canvas.scene().items():
                 if hasattr(item, "item_id") and item.item_id in layer_to_delete.get("shapes", []):
                     item.setVisible(True)
         # -----------------------------------------------------------------
