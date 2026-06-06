@@ -909,7 +909,7 @@ class PickerCanvas(QtWidgets.QGraphicsView):
         vp_size = self.viewport().size()
         w, h = vp_size.width(), vp_size.height()
 
-        if not hasattr(self, "scene") or not self.scene: return
+        if self.scene() is None: return
         
         for item in self.scene().items():
             if getattr(item, "placement_mode", "world") == "screen":
