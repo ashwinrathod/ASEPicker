@@ -103,7 +103,7 @@ def get_all_character_controls():
         if not char_tab: return []
         for i in range(char_tab.sub_tabs.count()):
             canvas = char_tab.sub_tabs.widget(i).canvas
-            for item in canvas.scene.items():
+            for item in canvas.scene().items():
                 if hasattr(item, "controls") and item.controls:
                     controls.extend(item.controls)
     except Exception:
