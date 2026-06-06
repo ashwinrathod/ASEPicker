@@ -741,6 +741,7 @@ class PickerController:
         self.push_undo_snapshot()
     
     def load_character_layout(self, layout_dict):
+        self.window._is_loading = True
         char_name = layout_dict.get("name", "Unknown")
         namespace = layout_dict.get("namespace", "")
         char_tab = self.window.add_character_tab(char_name, namespace)
@@ -815,8 +816,8 @@ class PickerController:
                     tab.canvas.update_screen_items()
                     
         # --- THE SMART MIRROR AUTO-SYNC ---
+        self.window._is_loading = False
         self.smart_sync_all()
-
         self.push_undo_snapshot()
 
     def on_item_selected(self, controls_list, select_mode):
