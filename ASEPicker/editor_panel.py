@@ -1423,7 +1423,7 @@ class EditorPanel(QtWidgets.QWidget):
         if win and hasattr(win, "menu_action_requested"):
             win.menu_action_requested.emit("push_undo")
 
-    def _on_live_change(self, *args):
+    def _on_live_change(self, _=None):
         if self._is_populating: return
         sender = self.sender()
         if not sender: return
@@ -1881,7 +1881,7 @@ class EditorPanel(QtWidgets.QWidget):
         if exec_func(): # If user clicks 'Apply & Close'
             self.te_scr_code.setPlainText(dialog.editor.toPlainText())
 
-    def _on_scr_live(self, *args):
+    def _on_scr_live(self, _=None):
         if not self.w_sprop.isEnabled(): return # Prevent ghost signals during selection changes
         row = self.list_scripts.currentRow()
         s_list = self._get_active_script_list()
