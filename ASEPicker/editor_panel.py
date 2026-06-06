@@ -1767,9 +1767,9 @@ class EditorPanel(QtWidgets.QWidget):
         elif action == act_sel:
             layer = next((l for l in canvas.layer_data if l["id"] == layer_id), None)
             if layer:
-                canvas.scene.clearSelection()
+                canvas.scene().clearSelection()
                 sel_items = []
-                for i in canvas.scene.items():
+                for i in canvas.scene().items():
                     if hasattr(i, "item_id") and i.item_id in layer["shapes"]: 
                         i.setSelected(True)
                         sel_items.append(i)
