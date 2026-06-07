@@ -60,7 +60,7 @@ jobs:
                       base = os.path.basename(rel_path)
                       clean_name = base.split('.')[0] + '.' + base.split('.')[-1]
                       shutil.move(src_path, os.path.join(target_dir, clean_name))
-                  elif f.endswith('.py') and f in ['__init__.py', 'hyper_trail_plugin.py', 'mouse_magic.py', 'editor_panel.py', 'alignment_panel.py', 'script_editor.py', 'preferences.py', 'layout_io.py']:
+                  elif f.endswith('.py') and f in ['__init__.py', 'hyper_trail_plugin.py', 'mouse_magic.py', 'preferences.py', 'layout_io.py']:
                       shutil.copy2(src_path, os.path.join(target_dir, f))
                   elif not f.endswith(('.py', '.c', '.pyx')):
                       shutil.copy2(src_path, os.path.join(target_dir, f))
