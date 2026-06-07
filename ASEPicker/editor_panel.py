@@ -1134,20 +1134,15 @@ class EditorPanel(QtWidgets.QWidget):
         l.addWidget(w1); l.addWidget(w2)
         return w
 
-    @QtCore.Slot(str)
-    def _on_live_str(self, val): self._on_live_change()
-    
-    @QtCore.Slot(int)
-    def _on_live_int(self, val): self._on_live_change()
-    
-    @QtCore.Slot(float)
-    def _on_live_float(self, val): self._on_live_change()
-    
-    @QtCore.Slot(bool)
-    def _on_live_bool(self, val): self._on_live_change()
-    
-    @QtCore.Slot()
-    def _on_live_none(self): self._on_live_change()
+    # --- UNIVERSAL PROXY SHIELDS ---
+    # By omitting @QtCore.Slot and using *args, Cython safely absorbs native C++ QString/double emissions!
+    def _on_live_str(self, *args): self._on_live_change()
+    def _on_live_int(self, *args): self._on_live_change()
+    def _on_live_float(self, *args): self._on_live_change()
+    def _on_live_bool(self, *args): self._on_live_change()
+    def _on_live_none(self, *args): self._on_live_change()
+    def _on_scr_live_str(self, *args): self._on_scr_live()
+    def _on_scr_live_none(self, *args): self._on_scr_live()
 
     def _bind_live_events(self):
         for widget in self.findChildren(QtWidgets.QLineEdit): widget.textChanged.connect(self._on_live_str)
