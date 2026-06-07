@@ -7,9 +7,6 @@ IGNORE_FILES = [
     "__init__.py", 
     "hyper_trail_plugin.py",
     "mouse_magic.py",       # Uncompiled events layer (Fixes the Cython Recursion Crash)
-    "editor_panel.py",      # Standard Qt UI
-    "alignment_panel.py",   # Standard Qt UI
-    "script_editor.py",     # Standard Qt UI
     "preferences.py",       # Simple JSON/Data IO
     "layout_io.py"          # Simple JSON/Data IO
 ]
