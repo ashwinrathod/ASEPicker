@@ -2148,6 +2148,17 @@ class EditorPanel(QtWidgets.QWidget):
         prefs.set("editor_y", self.y())
         QtWidgets.QWidget.closeEvent(self, event)
 
-    @QtCore.Slot(str, bool)
-    def _emit_ctrl(self, action, checked=False):
-        self.controls_modified
+    def _emit_ctrl(self, action, *args, **kwargs):
+        self.controls_modified.emit(action)
+
+    def _emit_attr(self, action, *args, **kwargs):
+        self.attribute_modified.emit(action)
+
+    def _emit_pose(self, action, *args, **kwargs):
+        self.pose_action_requested.emit(action)
+
+    def _emit_cb(self, state, action, *args, **kwargs):
+        self.checkbox_action_requested.emit(state, action)
+
+    def _emit_image(self, action, *args, **kwargs):
+        self.image_action_requested.emit(action)
