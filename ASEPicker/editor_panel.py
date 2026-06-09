@@ -102,9 +102,14 @@ class PresetButton(QtWidgets.QPushButton):
 
     def __init__(self, *args, **kwargs):
         QtWidgets.QPushButton.__init__(self)
-        self.data = args[0] if len(args) > 0 else kwargs.get("data")
-        self.p_type = args[1] if len(args) > 1 else kwargs.get("preset_type")
-        self.editor = args[2] if len(args) > 2 else kwargs.get("editor")
+        
+        data = args[0] if len(args) > 0 else kwargs.get("data")
+        preset_type = args[1] if len(args) > 1 else kwargs.get("preset_type")
+        editor = args[2] if len(args) > 2 else kwargs.get("editor")
+        
+        self.data = data
+        self.p_type = preset_type
+        self.editor = editor
         self.setContextMenuPolicy(QtCore.Qt.CustomContextMenu)
         self.customContextMenuRequested.connect(self._on_context)
         self.clicked.connect(self._on_click)
