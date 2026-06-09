@@ -282,12 +282,16 @@ class PresetButton(QtWidgets.QPushButton):
 
 class SmartAddButton(QtWidgets.QPushButton):
     def __init__(self, *args, **kwargs):
+        target_field = args[0] if len(args) > 0 else kwargs.get("target_field")
+        multi = args[1] if len(args) > 1 else kwargs.get("multi", False)
+        attr_mode = args[2] if len(args) > 2 else kwargs.get("attr_mode", False)
         parent = kwargs.get("parent", args[3] if len(args) > 3 else None)
+        
         QtWidgets.QPushButton.__init__(self, "ADD", parent)
         self.setFixedWidth(50)
-        self.target_field = args[0] if len(args) > 0 else kwargs.get("target_field")
-        self.multi = args[1] if len(args) > 1 else kwargs.get("multi", False)
-        self.attr_mode = args[2] if len(args) > 2 else kwargs.get("attr_mode", False)
+        self.target_field = target_field
+        self.multi = multi
+        self.attr_mode = attr_mode
         self.clicked.connect(self._on_click)
 
     def _on_click(self, *args, **kwargs):
