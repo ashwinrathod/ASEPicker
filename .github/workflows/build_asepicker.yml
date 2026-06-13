@@ -10,9 +10,8 @@ jobs:
     strategy:
       fail-fast: false # Prevents one failure from cancelling the rest
       matrix:
-        # Pinned to stable OS versions to support Python 3.7 compilation
         os: [windows-2022, ubuntu-22.04] # macos-13
-        python-version: ["3.7", "3.9", "3.10", "3.11", "3.13"]
+        python-version: ["3.11", "3.13"]
 
     steps:
       - name: Checkout Code
@@ -60,7 +59,7 @@ jobs:
                       base = os.path.basename(rel_path)
                       clean_name = base.split('.')[0] + '.' + base.split('.')[-1]
                       shutil.move(src_path, os.path.join(target_dir, clean_name))
-                  elif f.endswith('.py') and f in ['__init__.py', 'hyper_trail_plugin.py', 'mouse_magic.py', 'preferences.py', 'layout_io.py']:
+                  elif f.endswith('.py') and f in ['__init__.py', 'hyper_trail_plugin.py']:
                       shutil.copy2(src_path, os.path.join(target_dir, f))
                   elif not f.endswith(('.py', '.c', '.pyx')):
                       shutil.copy2(src_path, os.path.join(target_dir, f))
