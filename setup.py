@@ -5,10 +5,7 @@ import os
 # Files we absolutely DO NOT want to compile
 IGNORE_FILES = [
     "__init__.py", 
-    "hyper_trail_plugin.py",
-    "mouse_magic.py",       # Uncompiled events layer (Fixes the Cython Recursion Crash)
-    "preferences.py",       # Simple JSON/Data IO
-    "layout_io.py"          # Simple JSON/Data IO
+    "hyper_trail_plugin.py"
 ]
 
 extensions = []
