@@ -1,4 +1,4 @@
-name: Compile ASEPicker
+name: Compile ARTools
 on: 
   workflow_dispatch: 
 
@@ -30,7 +30,7 @@ jobs:
 
       - name: Clean up temporary C files
         run: |
-          rm ASEPicker/*.c 2>/dev/null || true
+          rm ARTools/*.c 2>/dev/null || true
         shell: bash
 
       - name: Organize Binaries
@@ -46,10 +46,10 @@ jobs:
           
           out_dir = f'build_output/{os_name}/py{py_ver}'
 
-          for root, dirs, files in os.walk('ASEPicker'):
+          for root, dirs, files in os.walk('ARTools'):
               for f in files:
                   src_path = os.path.join(root, f)
-                  rel_path = os.path.relpath(src_path, 'ASEPicker')
+                  rel_path = os.path.relpath(src_path, 'ARTools')
                   target_dir = os.path.join(out_dir, os.path.dirname(rel_path))
                   
                   if not os.path.exists(target_dir): 
@@ -69,5 +69,5 @@ jobs:
       - name: Upload Compiled Binaries
         uses: actions/upload-artifact@v4
         with:
-          name: ASEPicker-Compiled-${{ matrix.os }}-py${{ matrix.python-version }}
+          name: ARTools-Compiled-${{ matrix.os }}-py${{ matrix.python-version }}
           path: build_output/
