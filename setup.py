@@ -10,12 +10,12 @@ IGNORE_FILES = [
 
 extensions = []
 
-# Walk through all folders and subfolders inside ASEPicker
-for root, dirs, files in os.walk("ASEPicker"):
+# Walk through all folders and subfolders inside ARTools
+for root, dirs, files in os.walk("ARTools"):
     for file in files:
         if file.endswith(".py") and file not in IGNORE_FILES:
             
-            # Get the exact file path (e.g., ASEPicker/anim/logic_anim.py)
+            # Get the exact file path (e.g., ARTools/anim/logic_anim.py)
             file_path = os.path.join(root, file)
             
             # Convert the file path into a strict Python module name
