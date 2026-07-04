@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg width="100%" height="100%" viewBox="0 0 24 24" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xml:space="preserve" xmlns:serif="http://www.serif.com/" style="fill-rule:evenodd;clip-rule:evenodd;stroke-linejoin:round;stroke-miterlimit:2;">
+    <g transform="matrix(1.03624,0,0,1.03262,-0.484106,-0.411322)">
+        <clipPath id="_clip1">
+            <path d="M3.61,23.423L23.467,23.419C23.467,23.419 8.646,13.909 10.287,8.875C11.734,4.435 21.179,3.554 22.27,3.203C24.274,2.557 23.536,0.806 21.401,0.597C19.707,0.431 13.684,0.554 8.346,2.551C4.487,3.995 -3.815,10.475 3.61,23.423Z"/>
+        </clipPath>
+        <g clip-path="url(#_clip1)">
+            <g transform="matrix(0.965025,-0,-0,0.968407,0.467175,0.398327)">
+                <use xlink:href="#_Image2" x="0.165" y="0.151" width="24px" height="24px"/>
+            </g>
+        </g>
+    </g>
+    <g transform="matrix(0.767442,0,0,0.767442,8.14786,2.0694)">
+        <circle cx="15.195" cy="23.487" r="4.61"/>
+    </g>
+    <g transform="matrix(0.50103,0,0,0.50103,1.65831,-1.88543)">
+        <circle cx="15.195" cy="23.487" r="4.61"/>
+    </g>
+    <g transform="matrix(0.327101,0,0,0.327101,10.5316,-3.37444)">
+        <circle cx="15.195" cy="23.487" r="4.61"/>
+    </g>
+    <g transform="matrix(0.21355,0,0,0.21355,18.0683,-2.24808)">
+        <circle cx="15.195" cy="23.487" r="4.61"/>
+    </g>
+    <defs>
+        <image id="_Image2" width="24px" height="24px" xlink:href="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQEAYABgAAD/2wBDAAUDBAQEAwUEBAQFBQUGBwwIBwcHBw8LCwkMEQ8SEhEPERETFhwXExQaFRERGCEYGh0dHx8fExciJCIeJBweHx7/2wBDAQUFBQcGBw4ICA4eFBEUHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh4eHh7/wAARCAAYABgDAREAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAABQEH/8QAJxAAAQMABwkAAAAAAAAAAAAAEQABAwIEEhQhIjEFBhUWF4OipOL/xAAbAQABBQEBAAAAAAAAAAAAAAACAAEEBQcDBv/EACQRAAIBAQYHAAAAAAAAAAAAAAACEQEDBRITIUMUFmGBosHi/9oADAMBAAIRAxEAPwDSZosNFhZriOFV3ISmqT7HUKmlYoCwRDQLrbwC7QeQzoJS3P4qHbaN07Fs+TBLBIqX7wu3i7x6qTpVbx5i9L7Syeo/OUbHl8i0MTFEVzuK1LIAioQLbUVhlcaoiA6H/9k="/>
+    </defs>
+</svg>
