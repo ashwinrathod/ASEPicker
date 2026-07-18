@@ -524,7 +524,7 @@ class PickerController:
         self._ignore_selection_job = False
     
         # 5. Return focus to Maya viewport so hotkeys work immediately!
-        if not self.is_edit_mode:
+        if not self.window.is_edit_mode:
             try:
                 panel = cmds.getPanel(withFocus=True)
                 # If a model panel isn't already active, find the first visible one
