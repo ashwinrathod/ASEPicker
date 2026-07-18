@@ -528,20 +528,38 @@ class PickerController:
             QtCore.QTimer.singleShot(10, self._focus_maya_viewport)
 
     def _focus_maya_viewport(self):
-        self.window.clearFocus()
-        panel = cmds.getPanel(withFocus=True)
-        if not panel or "modelPanel" not in panel:
-            panels = cmds.getPanel(visiblePanels=True)
-            if panels:
-                for p in panels:
-                    if "modelPanel" in p:
-                        panel = p
-                        break
-            else:
+        try:
+            # 1. Clear focus from the ARTools canvas and window
+            if self.window:
+                self.window.clearFocus()
+                char_tab = self.window.main_tabs.currentWidget()
+                if char_tab and hasattr(char_tab, "sub_tabs"):
+                    sub_tab = char_tab.sub_tabs.currentWidget()
+                    if sub_tab and hasattr(sub_tab, "canvas"):
+                        sub_tab.canvas.clearFocus()
+
+            # 2. Tell the OS to give active keyboard focus back to Maya's main window
+            from . import ui
+            maya_win = ui.get_maya_main_window()
+            if maya_win:
+                maya_win.activateWindow()
+
+            # 3. Tell Maya internally to focus the specific 3D Viewport
+            panel = cmds.getPanel(withFocus=True)
+            if not panel or "modelPanel" not in panel:
+                panels = cmds.getPanel(visiblePanels=True)
+                if panels:
+                    for p in panels:
+                        if "modelPanel" in p:
+                            panel = p
+                            break
+            if not panel or "modelPanel" not in panel:
                 panel = "MayaWindow"
-        if not panel:
-            panel = "MayaWindow"
-        cmds.setFocus(panel)
+            
+            # 4. Use evalDeferred to guarantee Maya processes this AFTER Qt finishes its event loop
+            cmds.evalDeferred(f'import maya.cmds as mc; mc.setFocus("{panel}")', lowestPriority=True)
+        except Exception as e:
+            print(f"ARTools Focus Redirect Error: {e}")
     
     def handle_control_modification(self, shapes, action):
         """Secure Logic: Processes Maya selections and updates shape data without exposing logic to the UI."""
