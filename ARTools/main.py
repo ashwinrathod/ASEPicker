@@ -523,24 +523,25 @@ class PickerController:
             
         self._ignore_selection_job = False
     
-        # 5. Return focus to Maya viewport so hotkeys work immediately!
+        # 5. Return focus to Maya viewport after mouse click finishes so W/E/R hotkeys work!
         if not self.window.is_edit_mode:
-            try:
-                panel = cmds.getPanel(withFocus=True)
-                # If a model panel isn't already active, find the first visible one
-                if not panel or "modelPanel" not in panel:
-                    panels = cmds.getPanel(visiblePanels=True)
-                    if panels:
-                        for p in panels:
-                            if "modelPanel" in p:
-                                cmds.setFocus(p)
-                                break
-                        else:
-                            cmds.setFocus("MayaWindow")
-                    else:
-                        cmds.setFocus("MayaWindow")
-            except Exception:
-                pass
+            QtCore.QTimer.singleShot(10, self._focus_maya_viewport)
+
+    def _focus_maya_viewport(self):
+        self.window.clearFocus()
+        panel = cmds.getPanel(withFocus=True)
+        if not panel or "modelPanel" not in panel:
+            panels = cmds.getPanel(visiblePanels=True)
+            if panels:
+                for p in panels:
+                    if "modelPanel" in p:
+                        panel = p
+                        break
+            else:
+                panel = "MayaWindow"
+        if not panel:
+            panel = "MayaWindow"
+        cmds.setFocus(panel)
     
     def handle_control_modification(self, shapes, action):
         """Secure Logic: Processes Maya selections and updates shape data without exposing logic to the UI."""
