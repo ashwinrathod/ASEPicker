@@ -881,12 +881,15 @@ class AnimBar(QtWidgets.QWidget):
                         cmds.setKeyframe(attr_path)
 
                 for node, (m, tangents) in world_states[f].items():
-                    cmds.xform(temp_loc, ws=True, m=m)
-                    
                     if not cmds.getAttr(node + ".tx", l=True):
+                        cmds.xform(temp_loc, ws=True, m=m)
                         cmds.matchTransform(node, temp_loc, pos=True)
+
                     if not cmds.getAttr(node + ".rx", l=True):
-                        cmds.matchTransform(node, temp_loc, rot=True)
+                        cur_t = cmds.xform(node, q=True, ws=True, t=True)
+                        rot_m = list(m)
+                        rot_m[12], rot_m[13], rot_m[14] = cur_t[0], cur_t[1], cur_t[2]
+                        cmds.xform(node, ws=True, matrix=rot_m)
                     
                     if is_range or cmds.autoKeyframe(q=True, state=True) or cmds.keyframe(node, at=["translate", "rotate"], q=True, keyframeCount=True):
                         cmds.setKeyframe(node, at=["translate", "rotate"])
@@ -917,7 +920,11 @@ class AnimBar(QtWidgets.QWidget):
                     cmds.paneLayout(main_pane, edit=True, manage=True)
                 cmds.refresh(suspend=False)
                 cmds.refresh(force=True)
-                
+            
+            valid_nodes = [n for n in target_nodes if cmds.objExists(n)]
+            if valid_nodes:
+                cmds.select(valid_nodes, replace=True)
+            
             cmds.undoInfo(closeChunk=True)
             
             if is_range: cmds.inViewMessage(amg=f"Space Switch Baked ({len(frames)} frames)", pos="midCenter", fade=True)
