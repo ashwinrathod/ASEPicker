@@ -1,0 +1,73 @@
+name: Compile ARTools for Blender
+on: 
+  workflow_dispatch: 
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, ubuntu-22.04]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: Install Dependencies
+        run: python -m pip install --upgrade pip cython setuptools wheel
+
+      - name: Compile C-Extensions
+        run: python setup.py build_ext --inplace
+
+      - name: Clean up temporary C files
+        run: |
+          python -c "import os, glob; [os.remove(f) for f in glob.glob('ARTools/**/*.c', recursive=True) if os.path.exists(f)]"
+        shell: bash
+
+      - name: Organize Binaries
+        run: |
+          python -c "
+          import os
+          import shutil
+          import sys
+          
+          plat = sys.platform
+          os_name = 'win' if plat == 'win32' else 'mac' if plat == 'darwin' else 'linux'
+          py_ver = f'{sys.version_info.major}{sys.version_info.minor}'
+          
+          out_dir = f'build_output/{os_name}/py{py_ver}'
+
+          for root, dirs, files in os.walk('ARTools'):
+              for f in files:
+                  src_path = os.path.join(root, f)
+                  rel_path = os.path.relpath(src_path, 'ARTools')
+                  target_dir = os.path.join(out_dir, os.path.dirname(rel_path))
+                  
+                  if not os.path.exists(target_dir): 
+                      os.makedirs(target_dir)
+                      
+                  if f.endswith(('.pyd', '.so')):
+                      base = os.path.basename(rel_path)
+                      clean_name = base.split('.')[0] + '.' + base.split('.')[-1]
+                      shutil.move(src_path, os.path.join(target_dir, clean_name))
+                  elif f == '__init__.py':
+                      shutil.copy2(src_path, os.path.join(target_dir, f))
+                  elif not f.endswith(('.py', '.c', '.pyx')):
+                      shutil.copy2(src_path, os.path.join(target_dir, f))
+          "
+        shell: bash
+
+      - name: Upload Compiled Binaries
+        uses: actions/upload-artifact@v4
+        with:
+          name: ARTools-Blender-${{ matrix.os }}-py${{ matrix.python-version }}
+          path: build_output/
