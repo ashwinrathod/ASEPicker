@@ -937,106 +937,19 @@ class ModernSaver(QtWidgets.QDialog):
         return "active"
 
     def _main_layout_model_panels(self):
-        if wrapInstance is None:
-            return []
-
-        panels = []
-        for panel in cmds.getPanel(visiblePanels=True) or []:
-            if cmds.getPanel(typeOf=panel) == "modelPanel":
-                control = cmds.panel(panel, q=True, control=True)
-                ptr = omui.MQtUtil.findControl(control)
-                if ptr:
-                    widget = wrapInstance(int(ptr), QtWidgets.QWidget)
-                    if widget and widget.isVisible() and widget.window().objectName() == "MayaWindow":
-                        if widget.width() > 8 and widget.height() > 8:
-                            pos = widget.mapToGlobal(QtCore.QPoint(0, 0))
-                            panels.append({
-                                "panel": panel,
-                                "x": pos.x(),
-                                "y": pos.y(),
-                                "w": widget.width(),
-                                "h": widget.height()
-                            })
-
-        panels.sort(key=lambda item: (item["y"], item["x"]))
-        return panels
+        return []
 
     def _layout_output_rects(self, panels):
-        min_x = min([p["x"] for p in panels])
-        min_y = min([p["y"] for p in panels])
-        max_x = max([p["x"] + p["w"] for p in panels])
-        max_y = max([p["y"] + p["h"] for p in panels])
-        source_w = max(1, max_x - min_x)
-        source_h = max(1, max_y - min_y)
-        target_w, target_h = 600, 450
-        
-        scale_x = float(target_w) / float(source_w)
-        scale_y = float(target_h) / float(source_h)
-
-        rects = []
-        for panel in panels:
-            x = int(round((panel["x"] - min_x) * scale_x))
-            y = int(round((panel["y"] - min_y) * scale_y))
-            end_x = int(round((panel["x"] + panel["w"] - min_x) * scale_x))
-            end_y = int(round((panel["y"] + panel["h"] - min_y) * scale_y))
-            
-            rects.append(QtCore.QRect(x, y, max(16, end_x - x), max(16, end_y - y)))
-        return rects
+        return []
 
     def _playblast_panel_frame(self, panel_name, frame, rect, output_path):
-        cmds.playblast(
-            completeFilename=output_path,
-            forceOverwrite=True,
-            format="image",
-            compression="jpg",
-            quality=100,
-            widthHeight=(max(16, rect.width()), max(16, rect.height())),
-            startTime=frame,
-            endTime=frame,
-            showOrnaments=False,
-            viewer=False,
-            percent=100,
-            offScreen=True,
-            clearCache=True,
-            editorPanelName=panel_name
-        )
+        pass
 
     def _compose_layout_frame(self, panels, rects, frame, output_path, temp_dir):
-        target_w, target_h = 600, 450
-        canvas = QtGui.QPixmap(target_w, target_h)
-        canvas.fill(QtGui.QColor("#0F1419"))
-        painter = QtGui.QPainter(canvas)
-
-        for i, panel in enumerate(panels):
-            panel_file = os.path.join(temp_dir, "panel_{0}.jpg".format(i))
-            self._playblast_panel_frame(panel["panel"], frame, rects[i], panel_file)
-            if os.path.exists(panel_file):
-                painter.drawPixmap(rects[i], QtGui.QPixmap(panel_file))
-
-        painter.end()
-        canvas.save(output_path, "JPG", 100)
+        pass
 
     def _capture_layout_sequence(self, filename, frames, padding):
-        panels = self._main_layout_model_panels()
-        if not panels:
-            return False
-
-        rects = self._layout_output_rects(panels)
-        panel_temp = os.path.join(self.temp_dir, "_layout_panel_renders")
-        if os.path.exists(panel_temp):
-            shutil.rmtree(panel_temp)
-        os.makedirs(panel_temp)
-
-        current_frame = cmds.currentTime(q=True)
-        for frame in frames:
-            cmds.currentTime(frame, edit=True)
-            cmds.refresh(force=True)
-            QtWidgets.QApplication.processEvents()
-            frame_name = str(int(round(frame))).zfill(padding)
-            self._compose_layout_frame(panels, rects, frame, "{0}.{1}.jpg".format(filename, frame_name), panel_temp)
-        cmds.currentTime(current_frame, edit=True)
-        cmds.refresh(force=True)
-        return True
+        return False
 
     def capture_snapshot(self):
         self.update_live_stats(None)
@@ -1053,7 +966,7 @@ class ModernSaver(QtWidgets.QDialog):
         
         if layout_capture:
             if force_single:
-                frames = [cmds.currentTime(q=True)]
+                frames = [bpy.context.scene.frame_current]
                 self.captured_sequence = False
             else:
                 frames = list(range(self.start_frame, self.end_frame + 1, step))
