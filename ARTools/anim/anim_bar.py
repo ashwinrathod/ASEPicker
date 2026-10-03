@@ -1090,9 +1090,8 @@ class AnimBar(QtWidgets.QWidget):
         r_pivot = QtWidgets.QHBoxLayout()
         r_pivot.addWidget(QtWidgets.QLabel("Select desire Pivot control/object:"))
         txt_pivot = QtWidgets.QLineEdit()
-        import sys
-        cmds = sys.modules.get('maya.cmds')
-        sel = cmds.ls(sl=True) if cmds else []
+        import bpy
+        sel = [obj.name for obj in bpy.context.selected_objects]
         if sel: txt_pivot.setText(sel[0])
         btn_piv_add = QtWidgets.QPushButton("Add Selected")
         btn_piv_add.clicked.connect(partial(self._set_pivot_from_selection, txt_pivot))
