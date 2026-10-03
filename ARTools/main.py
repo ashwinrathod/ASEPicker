@@ -1066,7 +1066,6 @@ class PickerController:
                 except Exception as e: print(f"ARTools Python Error: {e}")
             elif cmd_type == "mel":
                 try:
-                    import sys
                     mel = sys.modules.get('maya.mel')
                     if mel: mel.eval(cmd_string)
                 except Exception as e: print(f"ARTools MEL Error: {e}")
