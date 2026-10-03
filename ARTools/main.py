@@ -7,13 +7,16 @@ import tempfile
 import shutil
 import os
 import time
+import sys
 import bpy
+import ARTools
 from . import core
 from . import ui
 from . import layout_io
 from . import picker_shapes
 from . import mouse_magic
-from .blender_host import active_view_layer, add_timer, get_plug, get_plug_enum_items, refresh_blender_viewports, remove_timer, select_objects, selected_object_names, set_plug
+from ARTools.preferences import Prefs
+from .blender_host import active_view_layer, add_timer, get_plug, set_plug, get_plug_enum_items, refresh_blender_viewports, remove_timer, select_objects, selected_object_names, set_plug
 
 # INJECT THE UNCOMPILED MOUSE EVENTS BEFORE BOOTING UI!
 mouse_magic.inject_events(ui, picker_shapes)
@@ -359,7 +362,6 @@ class PickerController:
                         widget.deleteLater()
                     except Exception: pass
             
-            import ARTools
             if hasattr(ARTools.main, "_app_instance"):
                 ARTools.main._app_instance = None
         
@@ -370,11 +372,9 @@ class PickerController:
             self.update_window_title()
 
         elif action == "open_anim_bar":
-            import ARTools
             ARTools.launch("animbar")
 
         elif action == "open_library":
-            import ARTools
             ARTools.launch("library")
     
         elif action == "shelf_animbar":
@@ -426,7 +426,6 @@ class PickerController:
 
     def _sync_ui_to_selection(self, sel_list):
         """High-Speed Native Qt Highlighting Engine"""
-        import ARTools.main
         if getattr(ARTools.main, "_app_instance", None) is None: return
         if not self.window.isVisible(): return
         
@@ -499,7 +498,6 @@ class PickerController:
         canvas.viewport().update()
 
     def _poll_selection(self):
-        import ARTools.main
         if getattr(ARTools.main, "_app_instance", None) is None: return None
         
         selection = tuple(selected_object_names())
@@ -1063,8 +1061,6 @@ class PickerController:
         if cmd_string:
             if cmd_type == "python":
                 try:
-                    import sys
-                    import bpy
                     cmds = sys.modules.get('maya.cmds')
                     exec(cmd_string, {"cmds": cmds, "bpy": bpy})
                 except Exception as e: print(f"ARTools Python Error: {e}")
@@ -1076,7 +1072,6 @@ class PickerController:
                 except Exception as e: print(f"ARTools MEL Error: {e}")
 
     def show_custom_menu(self, menu_data, item=None):
-        from ARTools.preferences import Prefs
         menu = Prefs.create_styled_menu(self.window)
         
         from . import api
@@ -1101,7 +1096,6 @@ class PickerController:
                     
                     if linked_attr:
                         try:
-                            import maya.cmds as cmds
                             node_attr = ""
                             if item and getattr(item, "controls", []):
                                 resolved = self.core.resolve_control_names(item.controls, current_ns)
@@ -1118,12 +1112,14 @@ class PickerController:
                                 else:
                                     node_attr = linked_attr
                                     
-                            if node_attr and cmds.objExists(node_attr):
-                                is_checked = bool(cmds.getAttr(node_attr))
-                                read_success = True
-                                plug_cache = node_attr
+                            if node_attr:
+                                val = get_plug(node_attr, None)
+                                if val is not None:
+                                    is_checked = bool(val)
+                                    read_success = True
+                                    plug_cache = node_attr
                         except: pass
-                        
+                    
                     if not read_success:
                         state_cache = getattr(item, "_menu_check_states", {}) if item else {}
                         is_checked = state_cache.get(data.get("label"), False)
@@ -1158,27 +1154,16 @@ class PickerController:
                         
                     plug = data.get("_resolved_plug", "")
                     if plug:
-                        try:
-                            import maya.cmds as cmds
-                            cmds.undoInfo(openChunk=True, chunkName="ARTools_MenuToggle")
-                            autokey = cmds.autoKeyframe(q=True, state=True)
-                            key_count = cmds.keyframe(plug, q=True, keyframeCount=True)
-                            is_animated = (key_count is not None and key_count > 0)
-                            if autokey: cmds.autoKeyframe(state=False)
-                            cmds.setAttr(plug, is_checked)
-                            if autokey:
-                                if is_animated: cmds.setKeyframe(plug)
-                                cmds.autoKeyframe(state=True)
-                            cmds.undoInfo(closeChunk=True)
-                        except: pass
+                        autokey = bpy.context.scene.tool_settings.use_keyframe_insert_auto
+                        set_plug(plug, is_checked, keyframe=autokey)
                 
                 from . import api
                 api._ACTIVE_MENU_STATE = is_checked
                 
                 script = data.get("command", "")
                 if script:
-                    try: exec(script, {"cmds": cmds, "MENU_CHECKED": is_checked, "api": api})
-                    except Exception as e: print(f"Menu Script Error: {e}")
+                    cmds = sys.modules.get('maya.cmds')
+                    exec(script, {"cmds": cmds, "bpy": bpy, "MENU_CHECKED": is_checked, "api": api})
         
         QtCore.QTimer.singleShot(10, _execute_custom)
 
@@ -1222,7 +1207,6 @@ class PickerController:
         current_identifier = get_plug(node_attr)
 
         # 3. Build the Beautiful QMenu
-        from ARTools.preferences import Prefs
         menu = Prefs.create_styled_menu(self.window)
 
         actions = {}
@@ -1916,9 +1900,11 @@ class PickerController:
                                     else:
                                         node_attr = linked_attr
 
-                                if node_attr and cmds.objExists(node_attr):
-                                    val = bool(cmds.getAttr(node_attr))
-                                    if not hasattr(item, "_menu_check_states"): item._menu_check_states = {}
+                                if node_attr:
+                                    read_val = get_plug(node_attr, None)
+                                    if read_val is not None:
+                                        val = bool(read_val)
+                                        if not hasattr(item, "_menu_check_states"): item._menu_check_states = {}
                                     
                                     # FIX: Default to None so the script ALWAYS executes on first pass to sync the UI!
                                     old_val = item._menu_check_states.get(scr.get("label"), None)
@@ -1949,9 +1935,11 @@ class PickerController:
                             else:
                                 node_attr = linked_attr
 
-                            if node_attr and cmds.objExists(node_attr):
-                                val = bool(cmds.getAttr(node_attr))
-                                if not hasattr(canvas, "_menu_check_states"): canvas._menu_check_states = {}
+                            if node_attr:
+                                read_val = get_plug(node_attr, None)
+                                if read_val is not None:
+                                    val = bool(read_val)
+                                    if not hasattr(canvas, "_menu_check_states"): canvas._menu_check_states = {}
                                 
                                 # FIX: Default to None so the script ALWAYS executes on first pass to sync the UI!
                                 old_val = canvas._menu_check_states.get(scr.get("label"), None)
@@ -2051,7 +2039,6 @@ class PickerController:
                     capture_w = int(capture_w * scale)
                     capture_h = int(capture_h * scale)
                 
-                import bpy
                 original_path = bpy.context.scene.render.filepath
                 original_x = bpy.context.scene.render.resolution_x
                 original_y = bpy.context.scene.render.resolution_y
@@ -2084,7 +2071,6 @@ class PickerController:
                 bpy.context.scene.render.film_transparent = original_film_transp
                 bpy.context.scene.render.image_settings.color_mode = original_color_mode
                 
-                from PySide6 import QtCore, QtGui
                 while os.path.exists(img_path) and os.path.getsize(img_path) > 200 * 1024:
                     img = QtGui.QImage(img_path)
                     if img.isNull(): break
@@ -2133,7 +2119,6 @@ class PickerController:
             for item in shapes: item.update()
         
         elif action in ["add_attrs", "rem_attrs"]:
-            from PySide6 import QtCore, QtWidgets
             char_tab = self.window.main_tabs.currentWidget()
             if not char_tab: return
             sub_tab = char_tab.sub_tabs.currentWidget()
@@ -2730,40 +2715,9 @@ class PickerController:
             self.refresh_current_layout(json.loads(history["stack"][history["index"]]))
 
     def _create_tool_shelf_button(self, tool_name, icon_name, command_str):
-        import maya.cmds as cmds
-        import maya.mel as mel
-        import os
-        
-        current_shelf = mel.eval("tabLayout -q -selectTab $gShelfTopLevel")
-        if not current_shelf:
-            cmds.warning("[ARTools] No active shelf found.")
-            return
-            
-        cmds.setParent(current_shelf)
-        
-        buttons = cmds.shelfLayout(current_shelf, q=True, childArray=True) or []
-        for btn in buttons:
-            if cmds.control(btn, exists=True) and cmds.objectTypeUI(btn) == "shelfButton":
-                if cmds.shelfButton(btn, q=True, annotation=True) == f"Launch {tool_name}":
-                    cmds.deleteUI(btn)
-                    
-        target_scripts_dir = cmds.internalVar(userScriptDir=True)
-        icon_path = os.path.join(target_scripts_dir, "ARTools", "icons", icon_name)
-        if not os.path.exists(icon_path):
-            icon_path = os.path.join(target_scripts_dir, "ARTools", "Icons", icon_name)
-            
-        icon_path = icon_path.replace("\\", "/")
-        if not os.path.exists(icon_path):
-            icon_path = "commandButton.png"
-          
-        cmds.shelfButton(
-            label=tool_name[:3].upper(),
-            annotation=f"Launch {tool_name}",
-            image1=icon_path, 
-            command=command_str,
-            sourceType="python"
-        )
-        cmds.inViewMessage(amg=f"Added <b>{tool_name}</b> to current shelf!", pos="midCenterTop", fade=True, fadeStayTime=1500)
+        msg = f"Blender does not natively use Maya shelves.\n\nTo quick-launch {tool_name}, run this Python command in the Text Editor or bind it to a custom hotkey:\n\n{command_str}"
+        QtWidgets.QMessageBox.information(self.window, "Shelf Setup", msg)
+        print(f"[ARTools] {tool_name} launch command: {command_str}")
 
     def refresh_current_layout(self, data):
         """Silently rebuilds the current tab from a snapshot for Undo/Redo."""
