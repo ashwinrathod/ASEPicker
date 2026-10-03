@@ -1062,11 +1062,17 @@ class PickerController:
         cmd_string = getattr(item, f"command_{click_type}", "")
         if cmd_string:
             if cmd_type == "python":
-                try: exec(cmd_string, {"cmds": cmds})
+                try:
+                    import sys
+                    import bpy
+                    cmds = sys.modules.get('maya.cmds')
+                    exec(cmd_string, {"cmds": cmds, "bpy": bpy})
                 except Exception as e: print(f"ARTools Python Error: {e}")
             elif cmd_type == "mel":
-                import maya.mel as mel
-                try: mel.eval(cmd_string)
+                try:
+                    import sys
+                    mel = sys.modules.get('maya.mel')
+                    if mel: mel.eval(cmd_string)
                 except Exception as e: print(f"ARTools MEL Error: {e}")
 
     def show_custom_menu(self, menu_data, item=None):
